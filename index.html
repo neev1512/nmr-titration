@@ -7,6 +7,28 @@
 <title>NMR Titration</title>
 <meta name="description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate.">
 <meta name="theme-color" content="#eef3fb">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="NMR Titration">
+<meta property="og:title" content="NMR Titration: simulation-guided “swapping” strategy">
+<meta property="og:description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate. Runs in your browser.">
+<meta property="og:url" content="https://neev1512.github.io/nmr-titration/">
+<meta property="og:image" content="https://neev1512.github.io/nmr-titration/icons/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="NMR Titration app icon with a binding curve">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="NMR Titration">
+<meta name="twitter:description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate. Runs in your browser.">
+<meta name="twitter:image" content="https://neev1512.github.io/nmr-titration/icons/og-image.jpg">
+<script>
+  // Startup splash: once per browser session, never for people who prefer reduced motion
+  try {
+    if (!sessionStorage.getItem("nmrSplash") && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.add("splash", "booting");
+      sessionStorage.setItem("nmrSplash", "1");
+    }
+  } catch (e) {}
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NMR Titration">
@@ -255,6 +277,43 @@
     #report .cite { margin-top: 16pt; font-size: 9pt; color: #555; }
   }
 
+  /* Startup splash */
+  #splash { display: none; }
+  html.splash #splash {
+    display: flex; position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    background: linear-gradient(160deg, #f4f7fd 0%, #eef3fb 45%, #f5f1fb 100%); cursor: pointer;
+  }
+  html.booting header, html.booting .tabs, html.booting .panel.active { animation-play-state: paused; }
+  .splash-icon { width: 132px; height: 132px; filter: drop-shadow(0 18px 40px rgba(80, 100, 190, .28));
+    animation: splashIcon .6s var(--spring) both; }
+  .splash-icon .sp-curve { stroke-dasharray: 1; stroke-dashoffset: 1; animation: drawLine .75s .18s cubic-bezier(.45, 0, .25, 1) forwards; }
+  .splash-icon .sp-dot { opacity: 0; transform-box: fill-box; transform-origin: center; animation: pop .4s var(--spring) forwards; }
+  .splash-name { font-size: 26px; font-weight: 680; letter-spacing: -0.01em;
+    background: linear-gradient(90deg, #2f5fae, #6a5fc8); -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: rise .6s .35s var(--ease) both; }
+  #splash.leave { animation: splashOut .55s var(--ease) forwards; pointer-events: none; }
+  @keyframes splashIcon { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
+  @keyframes splashOut { to { opacity: 0; transform: scale(1.04); filter: blur(6px); } }
+
+  /* Plot hover tooltip */
+  .plotbox { position: relative; }
+  .plotbox svg { touch-action: pan-y; }
+  .xhair { position: absolute; width: 1.5px; margin-left: -0.75px; background: rgba(59, 111, 196, .45); border-radius: 1px; pointer-events: none; display: none; }
+  .hdot { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 1px 5px rgba(30, 40, 80, .3); pointer-events: none; display: none; transition: top .12s ease-out; }
+  .tip { position: absolute; z-index: 3; pointer-events: none; display: none; min-width: 170px; padding: 9px 11px; border-radius: 12px;
+    font-size: 12.5px; line-height: 1.45; color: var(--text); font-variant-numeric: tabular-nums;
+    background: rgba(255, 255, 255, .9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+    border: 1px solid #fff; box-shadow: 0 8px 26px rgba(40, 60, 110, .16); }
+  .tip .th { font-weight: 640; }
+  .tip .ts { color: var(--muted); font-size: 11.5px; margin-bottom: 5px; }
+  .tip .tag { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 600; }
+  .tip .row { display: flex; align-items: center; gap: 8px; }
+  .tip .row .v { margin-left: auto; font-weight: 600; padding-left: 12px; }
+  .tip .sw { width: 12px; height: 3px; border-radius: 2px; flex: none; }
+  .tip .sw.pt { width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2px solid #111; }
+  .tip .row.data { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     .blob { animation: none !important; }
@@ -262,6 +321,29 @@
 </style>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <svg class="splash-icon" viewBox="0 0 512 512">
+    <defs>
+      <linearGradient id="sp-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb2f2"/><stop offset=".55" stop-color="#7d8fe6"/><stop offset="1" stop-color="#a48ae0"/></linearGradient>
+      <clipPath id="sp-clip"><rect width="512" height="512" rx="114"/></clipPath>
+    </defs>
+    <g clip-path="url(#sp-clip)">
+      <rect width="512" height="512" fill="url(#sp-bg)"/>
+      <circle cx="110" cy="90" r="150" fill="#c9f0e0" opacity=".35"/>
+      <circle cx="430" cy="440" r="170" fill="#e3d6fb" opacity=".35"/>
+      <rect x="96" y="96" width="320" height="320" rx="64" fill="#fff" fill-opacity=".3" stroke="#fff" stroke-opacity=".8" stroke-width="4"/>
+      <path d="M136 372 L376 372 M136 372 L136 140" stroke="#fff" stroke-opacity=".7" stroke-width="10" stroke-linecap="round" fill="none"/>
+      <path class="sp-curve" pathLength="1" d="M140 368 C170 250 205 205 250 186 C295 168 335 164 372 162" stroke="#fff" stroke-width="16" stroke-linecap="round" fill="none"/>
+      <g fill="#fff" stroke="#6a78d8" stroke-width="7">
+        <circle class="sp-dot" style="animation-delay:.42s" cx="166" cy="290" r="15"/>
+        <circle class="sp-dot" style="animation-delay:.54s" cx="222" cy="206" r="15"/>
+        <circle class="sp-dot" style="animation-delay:.66s" cx="300" cy="172" r="15"/>
+        <circle class="sp-dot" style="animation-delay:.78s" cx="366" cy="163" r="15"/>
+      </g>
+    </g>
+  </svg>
+  <div class="splash-name">NMR Titration</div>
+</div>
 <div class="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
 <div class="wrap">
   <header class="glass">
@@ -341,7 +423,7 @@
         <div class="btns"><button class="btn plain" data-reset="panel-sim">Reset to example values</button></div>
       </div>
       <div>
-        <div class="plotbox"><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
         <div class="out-actions"><button class="btn" id="sim-csv">Download data (CSV)</button><button class="btn" id="sim-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -439,7 +521,7 @@
         <div class="btns"><button class="btn plain" data-reset="panel-est">Reset to example values</button></div>
       </div>
       <div>
-        <div class="plotbox"><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
         <div class="out-actions"><button class="btn" id="est-csv">Download data (CSV)</button><button class="btn" id="est-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -478,7 +560,7 @@
 
       <h3>Good to know</h3>
       <ul>
-        <li><b>Online version:</b> <a href="https://neev1512.github.io/NMR-Titration/" target="_blank" rel="noopener">neev1512.github.io/NMR-Titration</a>. Open it in Chrome or Edge and click <b>Install app</b> (in Safari: <b>File → Add to Dock</b>) to get it as an app that also works offline.</li>
+        <li><b>Online version:</b> <a href="https://neev1512.github.io/nmr-titration/" target="_blank" rel="noopener">neev1512.github.io/nmr-titration</a>. Open it in Chrome or Edge and click <b>Install app</b> (in Safari: <b>File → Add to Dock</b>) to get it as an app that also works offline.</li>
         <li>The standalone HTML file works offline too and needs no installation. Share it by copying the file.</li>
         <li>The model assumes 1:1 binding (P + L ⇌ PL) in fast exchange.</li>
         <li>If you use it for published work, please cite the paper below.</li>
@@ -489,7 +571,7 @@
   <footer>
     Based on: Dcosta N, Black M, Huang R. <em>A simulation-guided “swapping” protocol for NMR titrations to study protein–protein interactions</em> (2024).
     Original notebook: <a href="https://colab.research.google.com/drive/1ibG-32ZzZIje11yDrjX1_1Ryd5j3H8_n" target="_blank" rel="noopener">Google Colab (version 2)</a>.
-    Online app: <a href="https://neev1512.github.io/NMR-Titration/" target="_blank" rel="noopener">neev1512.github.io/NMR-Titration</a>.
+    Online app: <a href="https://neev1512.github.io/nmr-titration/" target="_blank" rel="noopener">neev1512.github.io/nmr-titration</a>.
   </footer>
 </div>
 
@@ -723,6 +805,8 @@ function drawPlot(svg, spec, animate) {
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("font-family", FONT);
   svg.innerHTML = o.join("");
+  svg._geo = { W, m, pw, ph, xt, yt, X, Y, spec };
+  hideHover(svg);
   clearTimeout(svg._drawTimer);
   if (animate) {
     replay(svg, "draw");
@@ -806,6 +890,10 @@ const Y_LABELS = {
   bound: `Intensity of the bound peak, <tspan font-style="italic">I</tspan>${sub("b")}`,
 };
 const X_LABEL = `[Ligand] (µM)`;
+const TIP_NAMES = {
+  pb: "Fraction bound, <i>p</i><sub>b</sub>", csp: "Δδ (ppm)",
+  free: "Free-peak intensity, <i>I</i><sub>f</sub>", bound: "Bound-peak intensity, <i>I</i><sub>b</sub>",
+};
 
 function plotType() { return document.querySelector('input[name="simtype"]:checked').value; }
 
@@ -836,11 +924,12 @@ function updateSim(animate) {
     const colors = palette(kds.length);
     const lines = kds.map((kd, j) => ({
       xs, ys: xs.map((L) => tf(fractionBound(L, P, kd))), color: colors[j], label: kdLabel(kd),
+      kd, fn: (L) => tf(fractionBound(L, P, kd)),
     }));
     const markers = kds.map((kd) => ({
       xs: Ls, ys: Ls.map((L) => tf(fractionBound(L, P, kd))), shape: "circle", fill: "#ffffff", stroke: "#111111",
     }));
-    drawPlot($("#sim-plot"), { lines, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type] }, animate);
+    drawPlot($("#sim-plot"), { lines, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type], valueName: TIP_NAMES[type] }, animate);
     lastSim = { P, Lmax, kds, Ls, type, factor, xs, curves: lines.map((l) => l.ys), points: markers.map((m) => m.ys) };
     showError("#sim-error", "");
   } catch (e) {
@@ -909,15 +998,16 @@ function updateEst(animate) {
     kds.forEach((kd, j) => {
       const f = xs.map((L) => fractionBound(L, P, kd));
       const fEnd = f[f.length - 1];
-      lines.push({ xs, ys: f.map((v) => v / fEnd), color: colors[j], label: kdLabel(kd) });
+      lines.push({ xs, ys: f.map((v) => v / fEnd), color: colors[j], label: kdLabel(kd), kd, fn: (L) => fractionBound(L, P, kd) / fEnd });
       const ft = conc.map((L) => fractionBound(L, P, kd));
       const ftEnd = ft[ft.length - 1];
       markers.push({ xs: conc, ys: ft.map((v) => v / ftEnd), shape: "tri", fill: "#ffffff", stroke: colors[j] });
     });
-    markers.push({ xs: conc, ys: csp.map((c) => c / lastCsp), shape: "circle", fill: "#ffffff", stroke: "#111111" });
+    markers.push({ xs: conc, ys: csp.map((c) => c / lastCsp), shape: "circle", fill: "#ffffff", stroke: "#111111", dataLabel: "Your data" });
     drawPlot($("#est-plot"), {
       lines, markers, xLabel: X_LABEL,
       yLabel: `CSP${sub("i")}${unsub(" / CSP")}${sub("B0")}`,
+      valueName: "CSP<sub>i</sub> / CSP<sub>B0</sub>",
     }, animate);
     lastEst = { P, kds, conc, csp, xs, curves: lines.map((l) => l.ys),
       simPts: markers.slice(0, -1).map((m) => m.ys), measured: markers[markers.length - 1].ys };
@@ -1203,6 +1293,100 @@ $("#install-btn").addEventListener("click", async () => {
   installPrompt = null;
   $("#install-btn").hidden = true;
 });
+
+/* ================= Plot hover tooltip ================= */
+
+function fmtVal(v) {
+  if (!isFinite(v)) return "–";
+  if (v !== 0 && (Math.abs(v) >= 1e5 || Math.abs(v) < 1e-3)) return v.toExponential(3).replace("e+", "e");
+  return String(Number(v.toPrecision(4)));
+}
+function hideHover(svg) {
+  const box = svg.parentElement;
+  box.querySelectorAll(".xhair, .tip, .hdot").forEach((e) => (e.style.display = "none"));
+}
+function showHover(svg, e) {
+  const g = svg._geo;
+  if (!g || !g.spec.lines.length) return;
+  const box = svg.parentElement;
+  const r = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
+  const k = r.width / g.W;
+  const vx = (e.clientX - r.left) / k, vy = (e.clientY - r.top) / k;
+  if (vx < g.m.l - 4 || vx > g.m.l + g.pw + 4 || vy < g.m.t - 4 || vy > g.m.t + g.ph + 4) return hideHover(svg);
+
+  const lines = g.spec.lines, xs = lines[0].xs;
+  let x = g.xt.lo + ((vx - g.m.l) / g.pw) * (g.xt.hi - g.xt.lo);
+  x = Math.min(Math.max(x, xs[0]), xs[xs.length - 1]);
+
+  // Snap to titration points when the pointer is close to one
+  let snapped = false, best = 10;
+  g.spec.markers.forEach((mk) => mk.xs.forEach((mx) => {
+    const d = Math.abs(g.X(mx) - vx);
+    if (d < best) { best = d; x = mx; snapped = true; }
+  }));
+
+  const ox = r.left - br.left, oy = r.top - br.top;
+  const px = ox + g.X(x) * k;
+  const xh = box.querySelector(".xhair");
+  Object.assign(xh.style, { display: "block", left: px + "px", top: oy + g.m.t * k + "px", height: g.ph * k + "px" });
+
+  const vals = lines.map((l) => l.fn(x));
+  let dots = box.querySelectorAll(".hdot");
+  if (dots.length !== lines.length) {
+    dots.forEach((d) => d.remove());
+    lines.forEach(() => { const d = document.createElement("div"); d.className = "hdot"; box.appendChild(d); });
+    dots = box.querySelectorAll(".hdot");
+  }
+  lines.forEach((l, i) => {
+    const y = g.Y(vals[i]);
+    const inside = isFinite(y) && y >= g.m.t - 1 && y <= g.m.t + g.ph + 1;
+    Object.assign(dots[i].style, { display: inside ? "block" : "none", left: px + "px", top: oy + y * k + "px", background: l.color });
+  });
+
+  let html = `<div class="th">[L] = ${fmtVal(x)} µM${snapped ? '<span class="tag">titration point</span>' : ""}</div>`;
+  html += `<div class="ts">${g.spec.valueName}</div>`;
+  html += lines.map((l, i) => `<div class="row"><span class="sw" style="background:${l.color}"></span><span><i>K</i><sub>d</sub> ${l.kd} µM</span><span class="v">${fmtVal(vals[i])}</span></div>`).join("");
+  if (snapped) {
+    g.spec.markers.filter((mk) => mk.dataLabel).forEach((mk) => {
+      const i = mk.xs.indexOf(x);
+      if (i >= 0) html += `<div class="row data"><span class="sw pt"></span><span>${mk.dataLabel}</span><span class="v">${fmtVal(mk.ys[i])}</span></div>`;
+    });
+  }
+  const tip = box.querySelector(".tip");
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = px + 16;
+  if (left + tw > box.clientWidth - 6) left = px - 16 - tw;
+  const top = Math.min(Math.max(e.clientY - br.top - th / 2, 6), box.clientHeight - th - 6);
+  Object.assign(tip.style, { left: Math.max(6, left) + "px", top: top + "px" });
+}
+["#sim-plot", "#est-plot"].forEach((id) => {
+  const svg = $(id);
+  svg.addEventListener("pointermove", (e) => showHover(svg, e));
+  svg.addEventListener("pointerdown", (e) => showHover(svg, e));
+  svg.addEventListener("pointerleave", () => hideHover(svg));
+});
+
+/* ================= Startup splash ================= */
+
+(function splash() {
+  const root = document.documentElement, el = $("#splash");
+  if (!root.classList.contains("splash")) { el.remove(); return; }
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.classList.add("leave");
+    root.classList.remove("booting");
+    updateSim(true);
+    placeIndicators();
+    setTimeout(() => { root.classList.remove("splash"); el.remove(); }, 560);
+  };
+  setTimeout(finish, 1150);
+  el.addEventListener("click", finish);
+  addEventListener("keydown", finish, { once: true });
+})();
 
 // exposed for testing
 window.NMR = { fractionBound, linspace, swappingVolumes, pyFloat, makeZip, crc32, inputsText };
