@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>NMR Titration</title>
+<meta name="description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate.">
+<meta name="theme-color" content="#eef3fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NMR Titration">
+<script>
+  // Web-app features (install + offline) only apply when served from the website, not when opened as a local file
+  if (location.protocol.startsWith("http")) {
+    [["manifest", "manifest.webmanifest"], ["apple-touch-icon", "icons/apple-touch-icon.png"], ["icon", "icons/favicon-32.png"]]
+      .forEach(([rel, href]) => { const l = document.createElement("link"); l.rel = rel; l.href = href; document.head.appendChild(l); });
+    if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  }
+</script>
+<style>
+  :root {
+    --text: #1d2939;
+    --muted: #5b6b80;
+    --accent: #3b6fc4;
+    --accent-2: #6a8fe0;
+    --accent-soft: rgba(90, 135, 220, 0.14);
+    --glass: rgba(255, 255, 255, 0.58);
+    --glass-strong: rgba(255, 255, 255, 0.78);
+    --glass-border: rgba(255, 255, 255, 0.85);
+    --line: rgba(120, 140, 170, 0.20);
+    --shadow: 0 10px 34px rgba(60, 80, 120, 0.10), 0 2px 8px rgba(60, 80, 120, 0.06);
+    --shine: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    --error-soft: rgba(253, 226, 226, 0.85);
+    --error-text: #9b2c2c;
+    --radius: 18px;
+    --ease: cubic-bezier(.25, .9, .3, 1);
+    --spring: cubic-bezier(.3, 1.2, .5, 1);
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    margin: 0; min-height: 100vh;
+    background: linear-gradient(160deg, #f4f7fd 0%, #eef3fb 45%, #f5f1fb 100%);
+    color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* Soft drifting color blobs behind the glass */
+  .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
+  .b1 { width: 520px; height: 520px; background: #bcd3ff; top: -140px; left: -120px; animation: drift1 26s ease-in-out infinite alternate; }
+  .b2 { width: 460px; height: 460px; background: #c9f0e0; bottom: -160px; right: -80px; animation: drift2 30s ease-in-out infinite alternate; }
+  .b3 { width: 400px; height: 400px; background: #e3d6fb; top: 30%; left: 55%; animation: drift3 34s ease-in-out infinite alternate; }
+  .b4 { width: 300px; height: 300px; background: #ffe0cf; top: 55%; left: 8%; opacity: .4; animation: drift2 38s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { to { transform: translate(180px, 120px) scale(1.15); } }
+  @keyframes drift2 { to { transform: translate(-160px, -110px) scale(1.1); } }
+  @keyframes drift3 { to { transform: translate(-220px, 80px) scale(.9); } }
+
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow), var(--shine);
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 40px; }
+  header { padding: 20px 24px; border-radius: var(--radius); animation: rise 1s var(--ease) both; }
+  header h1 { font-size: 30px; line-height: 1.25; margin: 0; font-weight: 680; letter-spacing: -0.01em;
+    background: linear-gradient(90deg, #2f5fae, #6a5fc8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* Pill tab bar with a sliding glass indicator */
+  .tabs { position: relative; display: inline-flex; gap: 4px; margin: 18px 0 14px; padding: 5px; border-radius: 999px;
+    flex-wrap: wrap; max-width: 100%; animation: rise 1s .12s var(--ease) both; }
+  .tab-ind { position: absolute; top: 0; left: 0; border-radius: 999px; z-index: 0;
+    background: var(--glass-strong); border: 1px solid #fff;
+    box-shadow: 0 4px 14px rgba(59, 111, 196, 0.18), var(--shine);
+    transition: transform .8s var(--spring), width .8s var(--spring), height .5s var(--ease); }
+  .tab {
+    position: relative; z-index: 1; border: none; background: transparent; color: var(--muted);
+    padding: 9px 16px; border-radius: 999px; font: inherit; font-weight: 580; cursor: pointer;
+    transition: color .6s var(--ease);
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--accent); }
+  .tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  .tab .num {
+    display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%;
+    background: var(--accent-soft); color: var(--accent); font-size: 12px; text-align: center; margin-right: 6px;
+    transition: background .6s var(--ease), color .6s var(--ease), transform .7s var(--spring);
+  }
+  .tab[aria-selected="true"] .num { background: var(--accent); color: #fff; transform: scale(1.08); }
+
+  .panel { border-radius: var(--radius); padding: 24px; display: none; }
+  .panel.active { display: block; animation: panelIn .85s var(--ease) both; }
+  @keyframes panelIn { from { opacity: 0; transform: translateY(10px) scale(.992); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .panel h2 { font-size: 18px; margin: 0 0 4px; font-weight: 660; letter-spacing: -0.01em; }
+  .howto { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 26px; align-items: start; }
+  @media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+
+  .field { margin-bottom: 15px; }
+  .field label { display: block; font-weight: 580; font-size: 14px; margin-bottom: 5px; }
+  .field .hint { display: block; color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .field input[type="text"] {
+    width: 100%; padding: 9px 12px; font: inherit; color: var(--text);
+    border: 1px solid rgba(255,255,255,.9); border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: inset 0 1px 2px rgba(60, 80, 120, 0.08);
+    transition: box-shadow .5s var(--ease), border-color .5s var(--ease), background .5s var(--ease), transform .5s var(--ease);
+  }
+  .field input[type="text"]:hover { background: rgba(255,255,255,.85); }
+  .field input[type="text"]:focus {
+    outline: none; background: #fff; border-color: rgba(106, 143, 224, .7);
+    box-shadow: 0 0 0 4px rgba(106, 143, 224, .18), 0 6px 18px rgba(59, 111, 196, .10);
+  }
+  .field input.bad { border-color: #e2a0a0; background: #fff8f8; animation: shake .6s var(--ease); }
+  @keyframes shake { 20% { transform: translateX(-4px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+
+  /* Segmented control with a sliding pill */
+  .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
+    border-radius: 14px; background: rgba(255,255,255,.45); border: 1px solid rgba(255,255,255,.85);
+    box-shadow: inset 0 1px 2px rgba(60,80,120,.06); }
+  .seg-ind { position: absolute; top: 0; left: 0; border-radius: 10px; background: #fff;
+    box-shadow: 0 3px 10px rgba(59,111,196,.16); transition: transform .75s var(--spring), width .75s var(--spring), height .75s var(--spring); }
+  .seg label {
+    position: relative; z-index: 1; display: block; margin: 0; padding: 7px 8px; text-align: center;
+    font-weight: 520; font-size: 13px; border-radius: 10px; cursor: pointer; color: var(--muted);
+    transition: color .5s var(--ease);
+  }
+  .seg label:hover { color: var(--text); }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg input:checked + span { color: var(--accent); font-weight: 620; }
+  .seg label:has(input:focus-visible) { outline: 2px solid var(--accent-2); }
+
+  .extra { animation: rise .7s var(--ease) both; }
+
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  button.btn {
+    font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer;
+    padding: 9px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.9);
+    background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(232,240,252,.9));
+    color: var(--accent);
+    box-shadow: 0 4px 14px rgba(59,111,196,.14), var(--shine);
+    transition: transform .5s var(--spring), box-shadow .5s var(--ease), opacity .4s;
+  }
+  button.btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(59,111,196,.20), var(--shine); }
+  button.btn:active { transform: translateY(0) scale(.98); transition-duration: .2s; }
+  button.btn.plain { color: var(--muted); background: rgba(255,255,255,.6); box-shadow: 0 2px 8px rgba(60,80,120,.08), var(--shine); }
+  button.btn.plain:hover { color: var(--text); }
+  button.btn:disabled { opacity: .45; cursor: default; transform: none; }
+
+  .error {
+    display: none; background: var(--error-soft); color: var(--error-text);
+    border: 1px solid rgba(240, 190, 190, .9);
+    border-radius: 12px; padding: 10px 12px; font-size: 14px; margin-bottom: 14px;
+  }
+  .error.show { display: block; animation: rise .6s var(--ease) both; }
+
+  .plotbox { border-radius: 16px; background: rgba(255,255,255,.92); padding: 10px;
+    border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
+  .plotbox svg { display: block; width: 100%; height: auto; }
+  .out-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+
+  /* Plot draw-in animation (only when a tab opens or inputs reset; not while typing) */
+  svg.draw .ln { stroke-dasharray: 1; stroke-dashoffset: 1; animation: drawLine 1.8s var(--ease) forwards; }
+  svg.draw .mk { opacity: 0; animation: pop .7s var(--spring) forwards; animation-delay: .9s; transform-box: fill-box; transform-origin: center; }
+  svg.draw .lg { opacity: 0; animation: fadeIn .8s var(--ease) forwards; }
+  @keyframes drawLine { to { stroke-dashoffset: 0; } }
+  @keyframes pop { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: none; }
+  th { background: rgba(236, 242, 252, .8); font-weight: 620; color: var(--muted); font-size: 13px; }
+  th:first-child, td:first-child, th:last-child, td:last-child { text-align: left; }
+  tbody tr { transition: background .4s var(--ease); }
+  tbody tr:hover { background: rgba(106, 143, 224, .08); }
+  .tablewrap { overflow-x: auto; border-radius: 16px; background: rgba(255,255,255,.85); border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
+  .anim-rows tbody tr { opacity: 0; animation: rise .75s var(--ease) forwards; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { background: rgba(255,255,255,.8); border: 1px solid #fff; color: var(--accent); border-radius: 999px;
+    padding: 3px 11px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(59,111,196,.10); }
+  .anim-chips .chip { opacity: 0; animation: pop .6s var(--spring) forwards; }
+  h3 { font-size: 14.5px; margin: 22px 0 8px; font-weight: 650; }
+  .diagram { margin-top: 20px; border-radius: 16px; padding: 12px; background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.9); }
+  .diagram svg { display: block; width: 100%; height: auto; }
+  .flow { stroke-dasharray: 6 5; animation: flow 2.6s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -22; } }
+
+  .help { max-width: 780px; }
+  .help ol, .help ul { margin: 0 0 6px; padding-left: 22px; }
+  .help li { margin-bottom: 8px; }
+  .help code { background: rgba(255,255,255,.8); border: 1px solid #fff; border-radius: 6px; padding: 0 6px; font-size: 13px; }
+  .panel.active .help > * { animation: rise .8s var(--ease) both; }
+  .panel.active .help > *:nth-child(2) { animation-delay: .07s; }
+  .panel.active .help > *:nth-child(3) { animation-delay: .14s; }
+  .panel.active .help > *:nth-child(4) { animation-delay: .21s; }
+  .panel.active .help > *:nth-child(n+5) { animation-delay: .28s; }
+
+  footer { margin-top: 20px; padding: 0 6px; color: var(--muted); font-size: 12.5px; }
+  footer a { color: var(--accent); }
+
+  /* Export menu */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: relative; z-index: 5; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .header-actions .btn { padding: 10px 18px; font-size: 14px; }
+  .export { position: relative; }
+  .export .btn { padding: 10px 18px; font-size: 14px; }
+  .export .caret { display: inline-block; margin-left: 6px; transition: transform .5s var(--ease); }
+  .export .btn[aria-expanded="true"] .caret { transform: rotate(180deg); }
+  .menu { position: absolute; right: 0; top: calc(100% + 10px); width: 300px; padding: 6px; border-radius: 16px;
+    background: rgba(255,255,255,.88); transform-origin: top right; animation: menuIn .45s var(--ease) both; }
+  .menu[hidden] { display: none; }
+  @keyframes menuIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
+  .menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; font: inherit;
+    padding: 10px 12px; border-radius: 11px; cursor: pointer; color: var(--text); transition: background .4s var(--ease); }
+  .menu button:hover, .menu button:focus-visible { background: var(--accent-soft); outline: none; }
+  .menu b { display: block; font-weight: 620; color: var(--accent); }
+  .menu span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; max-width: min(92vw, 560px);
+    padding: 11px 18px; border-radius: 999px; font-size: 14px; color: var(--text);
+    background: rgba(255,255,255,.9); animation: toastIn .6s var(--ease) both; }
+  .toast[hidden] { display: none; }
+  .toast.out { animation: toastOut .6s var(--ease) both; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translate(-50%, 14px); } }
+
+  /* Printable report (only shown when printing / saving as PDF) */
+  #report { display: none; }
+  @media print {
+    @page { margin: 14mm; }
+    body { background: #fff !important; }
+    body > *:not(#report) { display: none !important; }
+    #report { display: block; color: #111; font-size: 11pt; line-height: 1.4; }
+    #report h1 { font-size: 18pt; margin: 0 0 2pt; }
+    #report .meta { color: #555; margin: 0 0 12pt; font-size: 10pt; }
+    #report section { margin-bottom: 14pt; }
+    #report section + section { break-before: page; }
+    #report h2 { font-size: 13.5pt; margin: 0 0 6pt; border-bottom: 1px solid #ccc; padding-bottom: 3pt; }
+    #report h4 { font-size: 11pt; margin: 10pt 0 4pt; }
+    #report table { border-collapse: collapse; width: 100%; font-size: 10pt; margin-bottom: 6pt; break-inside: avoid; }
+    #report th, #report td { border: 1px solid #ccc; padding: 3pt 6pt; text-align: left; }
+    #report th { background: #f1f4f9; }
+    #report svg { display: block; width: 100%; max-height: 120mm; break-inside: avoid; }
+    #report .skip { color: #9b2c2c; }
+    #report .cite { margin-top: 16pt; font-size: 9pt; color: #555; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    .blob { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
+<div class="wrap">
+  <header class="glass">
+    <h1>NMR Titration: Simulation-Guided “Swapping” Strategy</h1>
+    <div class="header-actions">
+    <button class="btn plain" id="install-btn" hidden>Install app</button>
+    <div class="export">
+      <button class="btn" id="export-btn" aria-haspopup="menu" aria-expanded="false">Export<span class="caret">▾</span></button>
+      <div class="menu glass" id="export-menu" role="menu" hidden>
+        <button role="menuitem" data-export="pdf"><b>PDF report</b><span>All inputs, plots and tables in one document. Choose “Save as PDF” in the print window.</span></button>
+        <button role="menuitem" data-export="zip"><b>All files (ZIP)</b><span>Plots as PNG, and all data as CSV files that open in Excel.</span></button>
+      </div>
+    </div>
+    </div>
+  </header>
+
+  <div class="tabs glass" role="tablist">
+    <span class="tab-ind" aria-hidden="true"></span>
+    <button class="tab" role="tab" aria-selected="true" data-tab="sim"><span class="num">1</span>Simulate binding curves</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="swap"><span class="num">2</span>Swapping strategy</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="est"><span class="num">3</span>Estimate K<sub>d</sub></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="help"><span class="num">?</span>How to use</button>
+  </div>
+
+  <!-- ============ 1. Simulation ============ -->
+  <section class="panel glass active" id="panel-sim" role="tabpanel">
+    <h2>Simulate 1:1 binding curves (P + L ⇌ PL)</h2>
+    <p class="howto">Enter your parameters. The plot updates as you type. Separate multiple values with commas.</p>
+    <div class="layout">
+      <div>
+        <div class="error" id="sim-error"></div>
+        <div class="field">
+          <label for="sim-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
+          <input type="text" id="sim-p" data-default="50">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="field">
+          <label for="sim-lmax">Maximum ligand (titrant) concentration (µM)</label>
+          <input type="text" id="sim-lmax" data-default="900">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="field">
+          <label for="sim-kd">Dissociation constant(s), K<sub>d</sub> (µM)</label>
+          <input type="text" id="sim-kd" data-default="0.5, 5, 10, 30, 50, 100, 200">
+          <span class="hint">One or more values, comma-separated</span>
+        </div>
+        <div class="field">
+          <label for="sim-l">Ligand (titrant) concentrations (µM)</label>
+          <input type="text" id="sim-l" data-default="0, 30, 55, 90, 140, 210, 290, 420, 600, 890">
+          <span class="hint">Your planned titration points, comma-separated</span>
+        </div>
+        <div class="field">
+          <label>Plot type</label>
+          <div class="seg" id="sim-type">
+            <span class="seg-ind" aria-hidden="true"></span>
+            <label><input type="radio" name="simtype" value="pb" checked><span>Fraction bound, p<sub>b</sub></span></label>
+            <label><input type="radio" name="simtype" value="csp"><span>CSP</span></label>
+            <label><input type="radio" name="simtype" value="free"><span>Intensity (free)</span></label>
+            <label><input type="radio" name="simtype" value="bound"><span>Intensity (bound)</span></label>
+          </div>
+        </div>
+        <div class="field extra" id="sim-extra-csp" hidden>
+          <label for="sim-csp">Maximum chemical shift perturbation, Δδ<sub>max</sub> (ppm)</label>
+          <input type="text" id="sim-csp" data-default="0">
+          <span class="hint">Single value. A value of 0 draws a flat line.</span>
+        </div>
+        <div class="field extra" id="sim-extra-free" hidden>
+          <label for="sim-ifree">Free peak intensity, I<sub>0,f</sub></label>
+          <input type="text" id="sim-ifree" data-default="1.0">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="field extra" id="sim-extra-bound" hidden>
+          <label for="sim-ibound">Bound peak intensity, I<sub>0,b</sub></label>
+          <input type="text" id="sim-ibound" data-default="1e7">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="btns"><button class="btn plain" data-reset="panel-sim">Reset to example values</button></div>
+      </div>
+      <div>
+        <div class="plotbox"><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
+        <div class="out-actions"><button class="btn" id="sim-csv">Download data (CSV)</button><button class="btn" id="sim-png">Save plot as PNG</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. Swapping ============ -->
+  <section class="panel glass" id="panel-swap" role="tabpanel">
+    <h2>Determine the “swapping” strategy</h2>
+    <p class="howto">Enter your planned ligand concentrations (usually the ones from tab 1) and the total sample volume. The swap volumes update as you type.</p>
+    <div class="layout">
+      <div>
+        <div class="error" id="swap-error"></div>
+        <div class="field">
+          <label for="swap-l">Ligand (titrant) concentrations (µM)</label>
+          <input type="text" id="swap-l" data-default="0, 30, 55, 90, 140, 210, 290, 420, 600, 890">
+          <span class="hint">Lowest (A<sub>0</sub>) first, highest (B<sub>0</sub>) last, comma-separated</span>
+        </div>
+        <div class="field">
+          <label for="swap-v">Total sample volume (µL)</label>
+          <input type="text" id="swap-v" data-default="500">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="btns"><button class="btn plain" data-reset="panel-swap">Reset to example values</button></div>
+        <div class="diagram" aria-label="Swapping diagram">
+          <svg viewBox="0 0 320 210" role="img" aria-label="Samples A and B swap equal volumes">
+            <defs>
+              <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 z" fill="#3d6fb8"/>
+              </marker>
+            </defs>
+            <g font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12" fill="#1f2a37">
+              <rect x="50" y="40" width="46" height="120" rx="12" fill="#ffffff" stroke="#8aa3c7" stroke-width="1.5"/>
+              <rect x="52" y="100" width="42" height="58" rx="10" fill="#e8f0fb"/>
+              <text x="73" y="30" text-anchor="middle" font-weight="600" font-size="15">A</text>
+              <text x="73" y="182" text-anchor="middle">protein only</text>
+              <text x="73" y="197" text-anchor="middle" fill="#5d6b7c">(low ligand)</text>
+
+              <rect x="224" y="40" width="46" height="120" rx="12" fill="#ffffff" stroke="#8aa3c7" stroke-width="1.5"/>
+              <rect x="226" y="100" width="42" height="58" rx="10" fill="#b9cff0"/>
+              <text x="247" y="30" text-anchor="middle" font-weight="600" font-size="15">B</text>
+              <text x="247" y="182" text-anchor="middle">protein + ligand</text>
+              <text x="247" y="197" text-anchor="middle" fill="#5d6b7c">(high ligand)</text>
+
+              <path d="M104,78 C140,52 180,52 216,78" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
+              <path d="M216,122 C180,148 140,148 104,122" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
+              <text x="160" y="50" text-anchor="middle" font-style="italic">V<tspan dy="3" font-size="9">sw</tspan></text>
+              <text x="160" y="160" text-anchor="middle" font-style="italic">V<tspan dy="3" font-size="9">sw</tspan></text>
+              <text x="160" y="104" text-anchor="middle" fill="#5d6b7c" font-size="11">swap equal</text>
+              <text x="160" y="118" text-anchor="middle" fill="#5d6b7c" font-size="11">volumes</text>
+            </g>
+          </svg>
+          <p style="margin:6px 4px 2px;font-size:12.5px;color:var(--muted)">After each swap, the ligand concentration goes up in A and down in B, while the protein concentration stays the same. Measure both tubes to get two titration points.</p>
+        </div>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Swapping scheme</h3>
+        <div class="tablewrap"><table id="swap-table"></table></div>
+        <h3>Titration points (in measurement order)</h3>
+        <div class="chips" id="swap-points"></div>
+        <div class="out-actions">
+          <button class="btn" id="swap-csv">Download swapping scheme (CSV)</button>
+          <button class="btn" id="swap-pts-csv">Download titration points (CSV)</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. Estimate Kd ============ -->
+  <section class="panel glass" id="panel-est" role="tabpanel">
+    <h2>Estimate K<sub>d</sub> from the A<sub>0</sub>, A<sub>1</sub>, and B<sub>0</sub> titration points</h2>
+    <p class="howto">Enter your measured CSPs. Your data (black circles) are compared with the simulated curves. The curve they sit on gives an approximate K<sub>d</sub>.</p>
+    <div class="layout">
+      <div>
+        <div class="error" id="est-error"></div>
+        <div class="field">
+          <label for="est-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
+          <input type="text" id="est-p" data-default="50">
+          <span class="hint">Single value</span>
+        </div>
+        <div class="field">
+          <label for="est-kd">Dissociation constant(s) to compare, K<sub>d</sub> (µM)</label>
+          <input type="text" id="est-kd" data-default="0.5, 5, 10, 30, 50, 100, 200">
+          <span class="hint">One or more values, comma-separated</span>
+        </div>
+        <div class="field">
+          <label for="est-l">Ligand concentrations of A<sub>0</sub>, A<sub>1</sub>, …, B<sub>0</sub> (µM)</label>
+          <input type="text" id="est-l" data-default="0, 30, 890">
+          <span class="hint">Three (A<sub>0</sub>, A<sub>1</sub>, B<sub>0</sub>) or more values, B<sub>0</sub> last</span>
+        </div>
+        <div class="field">
+          <label for="est-csp">CSPs of A<sub>0</sub>, A<sub>1</sub>, …, B<sub>0</sub> (ppm)</label>
+          <input type="text" id="est-csp" data-default="0, 0.34, 1.0">
+          <span class="hint">Same number of values as above, in the same order</span>
+        </div>
+        <div class="btns"><button class="btn plain" data-reset="panel-est">Reset to example values</button></div>
+      </div>
+      <div>
+        <div class="plotbox"><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
+        <div class="out-actions"><button class="btn" id="est-csv">Download data (CSV)</button><button class="btn" id="est-png">Save plot as PNG</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. How to use ============ -->
+  <section class="panel glass" id="panel-help" role="tabpanel">
+    <div class="help">
+      <h2>How to use this tool</h2>
+      <p class="howto">There's no code to run. Type your values and the results update right away.</p>
+
+      <h3>Typical workflow</h3>
+      <ol>
+        <li><b>Plan (tab 1).</b> Enter your protein concentration and a few K<sub>d</sub> values you think are plausible. Adjust your ligand concentrations until the circles are spread along the rising part of the curves, not bunched at the flat top.</li>
+        <li><b>Get the pipetting recipe (tab 2).</b> Paste the same ligand concentrations and your sample volume. The table shows how many µL to swap between tubes A and B at each step, and the chips show the order in which to measure the points.</li>
+        <li><b>Run the first swap at the bench.</b> Measure A<sub>0</sub>, B<sub>0</sub>, and A<sub>1</sub>.</li>
+        <li><b>Estimate K<sub>d</sub> early (tab 3).</b> Enter those concentrations and their CSPs. The curve your black circles sit on gives an approximate K<sub>d</sub>. If it's far from what you planned for, go back to tab 1 and re-plan the remaining points.</li>
+      </ol>
+
+      <h3>Entering values</h3>
+      <ul>
+        <li>Separate multiple values with commas, e.g. <code>0.5, 5, 50</code>. Scientific notation like <code>1e7</code> works.</li>
+        <li>Concentrations are in µM, volumes in µL, and CSPs in ppm.</li>
+        <li>In tabs 2 and 3, put A<sub>0</sub> (lowest ligand) first and B<sub>0</sub> (highest) last.</li>
+        <li>If something is wrong, a red message says what to fix and the box is outlined. The results come back as soon as you correct it.</li>
+        <li><b>Reset to example values</b> restores the notebook's example inputs.</li>
+      </ul>
+
+      <h3>Saving results</h3>
+      <ul>
+        <li><b>Export → PDF report</b> puts all your inputs, both plots, the swapping table and the titration points into one document. In the print window, choose <b>Save as PDF</b>.</li>
+        <li><b>Export → All files (ZIP)</b> downloads everything at once: both plots as PNG, the data behind every plot and table as CSV (opens in Excel), and a text file listing your inputs.</li>
+        <li>Each tab also has its own buttons: <b>Save plot as PNG</b> (high resolution, white background) and <b>Download data (CSV)</b>.</li>
+        <li>Nothing is saved automatically. Your inputs reset when you close or reload the page.</li>
+      </ul>
+
+      <h3>Good to know</h3>
+      <ul>
+        <li>This file works offline and needs no installation. Share it by copying the file.</li>
+        <li>The model assumes 1:1 binding (P + L ⇌ PL) in fast exchange.</li>
+        <li>If you use it for published work, please cite the paper below.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Based on: Dcosta N, Black M, Huang R. <em>A simulation-guided “swapping” protocol for NMR titrations to study protein–protein interactions</em> (2024).
+    Original notebook: <a href="https://colab.research.google.com/drive/1ibG-32ZzZIje11yDrjX1_1Ryd5j3H8_n" target="_blank" rel="noopener">Google Colab (version 2)</a>.
+  </footer>
+</div>
+
+<div id="report" aria-hidden="true"></div>
+<div class="toast glass" id="toast" role="status" hidden></div>
+
+<script>
+"use strict";
+
+/* ================= Math (ported line-for-line from the notebook) ================= */
+
+// one_to_one_fastex: fraction of protein bound, 1:1 complex, fast exchange
+function fractionBound(L, P, Kd) {
+  const a = P, b = P + L + Kd, c = L;
+  const bound = (b - Math.sqrt(b * b - 4 * a * c)) / 2;   // concentration of complex, µM
+  return bound / P;
+}
+
+// numpy.linspace(start, stop, num)
+function linspace(start, stop, num) {
+  const step = (stop - start) / (num - 1);
+  const out = [];
+  for (let i = 0; i < num; i++) out.push(i * step + start);
+  out[num - 1] = stop;
+  return out;
+}
+
+// calculate_swapping_volumes
+function swappingVolumes(conc, V) {
+  const A = [conc[0]], B = [conc[conc.length - 1]];
+  let trim = conc.slice(1, -1);
+  const n = conc.length;
+  const VSW = [0];
+  const points = ["A0", "B0"];
+  const rowPoints = [["A0", "B0"]];
+
+  let i = 1;
+  while (i <= n - 2) {
+    const ai = A[A.length - 1], bi = B[B.length - 1];
+    let an = trim[0], bn = trim[trim.length - 1];
+    const v1 = (an - ai) / (bi - ai) * V;
+    const v2 = (bi - bn) / (bi - ai) * V;
+    let vsw;
+    if (v1 === v2) {
+      vsw = v1;
+      trim = trim.slice(1, -1);
+      A.push(an); B.push(bn);
+      points.push("A" + i, "B" + i); rowPoints.push(["A" + i, "B" + i]);
+    } else if (v1 < v2) {
+      vsw = v1;
+      A.push(an);
+      bn = bi - (bi - ai) * vsw / V;
+      B.push(bn);
+      trim = trim.slice(1);
+      points.push("A" + i); rowPoints.push(["A" + i]);
+    } else if (v1 > v2) {
+      vsw = v2;
+      B.push(bn);
+      an = ai + (bi - ai) * vsw / V;
+      A.push(an);
+      trim = trim.slice(0, -1);
+      points.push("B" + i); rowPoints.push(["B" + i]);
+    } else {
+      throw "The concentrations could not be compared (check for repeated or invalid values).";
+    }
+    VSW.push(vsw);
+    if (trim.length === 0) break;
+    i += 1;
+  }
+  return { VSW, A, B, points, rowPoints };
+}
+
+/* ================= Input helpers ================= */
+
+const $ = (s) => document.querySelector(s);
+
+function parseList(id, name) {
+  const el = $(id);
+  const parts = el.value.split(",").map((s) => s.trim()).filter((s) => s !== "");
+  if (!parts.length) { el.classList.add("bad"); throw `${name}: please enter at least one number.`; }
+  return parts.map((p) => {
+    const v = Number(p);
+    if (!isFinite(v)) { el.classList.add("bad"); throw `${name}: “${p}” is not a number.`; }
+    return v;
+  });
+}
+function parseOne(id, name) {
+  const vals = parseList(id, name);
+  if (vals.length !== 1) { $(id).classList.add("bad"); throw `${name}: please enter a single value.`; }
+  return vals[0];
+}
+function flag(id, msg) { $(id).classList.add("bad"); throw msg; }
+function clearBad(panel) { panel.querySelectorAll("input.bad").forEach((e) => e.classList.remove("bad")); }
+function showError(id, msg) {
+  const el = $(id);
+  el.textContent = msg || "";
+  el.classList.toggle("show", !!msg);
+}
+
+/* ================= Plotting (plain SVG, no libraries) ================= */
+
+const FONT = "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif";
+const sub = (t) => `<tspan dy="4" font-size="0.75em">${t}</tspan>`;
+const unsub = (t) => `<tspan dy="-4">${t}</tspan>`;
+
+// Evenly spaced hues (like the notebook's husl palette), as readable mid-tone colors on white
+function palette(n) {
+  const step = Math.max(1, Math.floor(50 / n));
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(oklch(0.62, 0.14, 20 + i * step * 7.2));
+  return out;
+}
+function oklch(L, C, hDeg) {
+  const h = hDeg * Math.PI / 180, a = C * Math.cos(h), b = C * Math.sin(h);
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+  const lin = [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+  ];
+  return "#" + lin.map((x) => {
+    const v = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+    return Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0");
+  }).join("");
+}
+
+function niceTicks(min, max, count = 6) {
+  if (!isFinite(min) || !isFinite(max)) { min = 0; max = 1; }
+  if (min === max) { const d = Math.abs(min) || 1; min -= d / 2; max += d / 2; }
+  const span = max - min;
+  let step = Math.pow(10, Math.floor(Math.log10(span / count)));
+  const err = (count / span) * step;
+  if (err <= 0.15) step *= 10; else if (err <= 0.35) step *= 5; else if (err <= 0.75) step *= 2;
+  const lo = Math.floor(min / step + 1e-9) * step, hi = Math.ceil(max / step - 1e-9) * step;
+  const ticks = [];
+  for (let v = lo; v <= hi + step * 1e-6; v += step) ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  return { lo, hi, ticks, step };
+}
+function fmtTick(v, step, big) {
+  if (big) {
+    if (v === 0) return "0";
+    return v.toExponential(Math.max(0, Math.min(3, -Math.floor(Math.log10(step)) + Math.floor(Math.log10(big))))).replace("e+", "e");
+  }
+  const dec = Math.max(0, -Math.floor(Math.log10(step) + 1e-9));
+  return v.toFixed(dec);
+}
+
+/*
+ * spec = { lines:[{xs, ys, color, label}], markers:[{xs, ys, shape, fill, stroke}], xLabel, yLabel }
+ */
+function drawPlot(svg, spec, animate) {
+  const W = 700, legendW = 185;
+  const H = Math.max(450, 90 + spec.lines.length * 27);
+  const m = { l: 96, r: legendW + 14, t: 20, b: 72 };
+  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+
+  let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+  const acc = (xs, ys) => {
+    xs.forEach((x, i) => {
+      const y = ys[i];
+      if (!isFinite(x) || !isFinite(y)) return;
+      xmin = Math.min(xmin, x); xmax = Math.max(xmax, x);
+      ymin = Math.min(ymin, y); ymax = Math.max(ymax, y);
+    });
+  };
+  spec.lines.forEach((s) => acc(s.xs, s.ys));
+  spec.markers.forEach((s) => acc(s.xs, s.ys));
+  ymin = Math.min(ymin, 0);
+  xmin = Math.min(xmin, 0);
+
+  const xt = niceTicks(xmin, xmax), yt = niceTicks(ymin, ymax);
+  const X = (x) => m.l + ((x - xt.lo) / (xt.hi - xt.lo)) * pw;
+  const Y = (y) => m.t + ph - ((y - yt.lo) / (yt.hi - yt.lo)) * ph;
+  const yBig = Math.max(Math.abs(yt.lo), Math.abs(yt.hi)) >= 1e5 ? Math.max(Math.abs(yt.lo), Math.abs(yt.hi)) : 0;
+
+  const o = [];
+  o.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`);
+  // grid + ticks
+  xt.ticks.forEach((v) => {
+    const x = X(v).toFixed(2);
+    o.push(`<line x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t + ph}" stroke="#eef1f5"/>`);
+    o.push(`<line x1="${x}" x2="${x}" y1="${m.t + ph}" y2="${m.t + ph + 5}" stroke="#4b5563"/>`);
+    o.push(`<text x="${x}" y="${m.t + ph + 25}" text-anchor="middle" font-size="16" fill="#4b5563">${fmtTick(v, xt.step, 0)}</text>`);
+  });
+  yt.ticks.forEach((v) => {
+    const y = Y(v).toFixed(2);
+    o.push(`<line x1="${m.l}" x2="${m.l + pw}" y1="${y}" y2="${y}" stroke="#eef1f5"/>`);
+    o.push(`<line x1="${m.l - 5}" x2="${m.l}" y1="${y}" y2="${y}" stroke="#4b5563"/>`);
+    o.push(`<text x="${m.l - 9}" y="${y}" dy="6" text-anchor="end" font-size="16" fill="#4b5563">${fmtTick(v, yt.step, yBig)}</text>`);
+  });
+  o.push(`<rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="none" stroke="#4b5563"/>`);
+  // axis labels
+  o.push(`<text x="${m.l + pw / 2}" y="${H - 14}" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.xLabel}</text>`);
+  o.push(`<text transform="translate(24 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.yLabel}</text>`);
+
+  // clip to plotting area
+  o.push(`<defs><clipPath id="clip-${svg.id}"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}"/></clipPath></defs>`);
+  o.push(`<g clip-path="url(#clip-${svg.id})">`);
+  spec.lines.forEach((s, li) => {
+    const d = s.xs.map((x, i) => (isFinite(s.ys[i]) ? `${X(x).toFixed(2)},${Y(s.ys[i]).toFixed(2)}` : null))
+      .filter(Boolean).join(" L");
+    if (d) o.push(`<path class="ln" pathLength="1" style="animation-delay:${(li * 0.12).toFixed(2)}s" d="M${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`);
+  });
+  o.push(`</g>`);
+  spec.markers.forEach((s, mi) => {
+    const md = `style="animation-delay:${(0.9 + mi * 0.08).toFixed(2)}s"`;
+    s.xs.forEach((x, i) => {
+      const y = s.ys[i];
+      if (!isFinite(x) || !isFinite(y)) return;
+      const cx = X(x), cy = Y(y);
+      if (s.shape === "tri") {
+        const r = 5.5;
+        o.push(`<polygon class="mk" ${md} points="${cx},${cy - r} ${cx - r * 0.95},${cy + r * 0.6} ${cx + r * 0.95},${cy + r * 0.6}" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.4"/>`);
+      } else {
+        o.push(`<circle class="mk" ${md} cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="4.5" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.3"/>`);
+      }
+    });
+  });
+  // legend
+  const lx = m.l + pw + 18;
+  const ly = m.t + ph / 2 - (spec.lines.length * 27) / 2;
+  spec.lines.forEach((s, i) => {
+    const y = ly + i * 27 + 13;
+    o.push(`<g class="lg" style="animation-delay:${(0.3 + i * 0.1).toFixed(2)}s">`);
+    o.push(`<line x1="${lx}" x2="${lx + 22}" y1="${y}" y2="${y}" stroke="${s.color}" stroke-width="2.5"/>`);
+    o.push(`<text x="${lx + 30}" y="${y}" dy="6" font-size="17" fill="#1f2a37">${s.label}</text></g>`);
+  });
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("font-family", FONT);
+  svg.innerHTML = o.join("");
+  clearTimeout(svg._drawTimer);
+  if (animate) {
+    replay(svg, "draw");
+    svg._drawTimer = setTimeout(() => svg.classList.remove("draw"), 3800);
+  } else {
+    svg.classList.remove("draw");
+  }
+}
+
+// Restart a CSS animation class
+function replay(el, cls) {
+  el.classList.remove(cls);
+  void el.getBoundingClientRect();
+  el.classList.add(cls);
+}
+
+function kdLabel(kd) { return `<tspan font-style="italic">K</tspan>${sub("d")}${unsub(" " + kd + " µM")}`; }
+
+/* ================= Downloads ================= */
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function svgToPngBlob(svg) {
+  return new Promise((resolve, reject) => {
+    const clone = svg.cloneNode(true);
+    clone.removeAttribute("class");
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    const [, , w, h] = svg.getAttribute("viewBox").split(" ").map(Number);
+    clone.setAttribute("width", w); clone.setAttribute("height", h);
+    const img = new Image();
+    img.onload = () => {
+      const scale = 3;
+      const c = document.createElement("canvas");
+      c.width = w * scale; c.height = h * scale;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, c.width, c.height);
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => (b ? resolve(b) : reject("PNG could not be created.")), "image/png");
+    };
+    img.onerror = () => reject("PNG could not be created.");
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+  });
+}
+function savePNG(svg, filename) {
+  if (!svg.innerHTML) return;
+  svgToPngBlob(svg).then((b) => downloadBlob(b, filename)).catch((e) => toast(String(e)));
+}
+
+// Same number formatting Python/pandas uses when writing floats to CSV
+function pyFloat(x) {
+  if (Number.isNaN(x)) return "nan";
+  if (!isFinite(x)) return x > 0 ? "inf" : "-inf";
+  const [mant, e] = Math.abs(x).toExponential().split("e");
+  const exp = Number(e);
+  const digits = mant.replace(".", "");
+  const sign = x < 0 ? "-" : "";
+  if (exp < -4 || exp >= 16) {
+    const m = digits.length > 1 ? digits[0] + "." + digits.slice(1) : digits;
+    return sign + m + "e" + (exp < 0 ? "-" : "+") + String(Math.abs(exp)).padStart(2, "0");
+  }
+  if (exp >= 0) {
+    const intPart = digits.slice(0, exp + 1).padEnd(exp + 1, "0");
+    const frac = digits.slice(exp + 1) || "0";
+    return sign + intPart + "." + frac;
+  }
+  return sign + "0." + "0".repeat(-exp - 1) + digits;
+}
+function fmtCell(x) { return isFinite(x) ? String(Number(x.toFixed(3))) : String(x); }
+
+/* ================= Tab 1: simulation ================= */
+
+const Y_LABELS = {
+  pb: `Fractional bound protein, <tspan font-style="italic">p</tspan>${sub("b")}`,
+  csp: `Δδ (ppm)`,
+  free: `Intensity of the free peak, <tspan font-style="italic">I</tspan>${sub("f")}`,
+  bound: `Intensity of the bound peak, <tspan font-style="italic">I</tspan>${sub("b")}`,
+};
+const X_LABEL = `[Ligand] (µM)`;
+
+function plotType() { return document.querySelector('input[name="simtype"]:checked').value; }
+
+let lastSim = null;
+function updateSim(animate) {
+  const panel = $("#panel-sim");
+  clearBad(panel);
+  try {
+    const type = plotType();
+    ["csp", "free", "bound"].forEach((t) => ($("#sim-extra-" + t).hidden = t !== type));
+
+    const P = parseOne("#sim-p", "Protein concentration");
+    if (P <= 0) flag("#sim-p", "Protein concentration must be greater than 0.");
+    const Lmax = parseOne("#sim-lmax", "Maximum ligand concentration");
+    if (Lmax <= 0) flag("#sim-lmax", "Maximum ligand concentration must be greater than 0.");
+    const kds = parseList("#sim-kd", "Dissociation constant");
+    if (kds.some((k) => k < 0)) flag("#sim-kd", "Dissociation constants cannot be negative.");
+    const Ls = parseList("#sim-l", "Ligand concentrations");
+    if (Ls.some((l) => l < 0)) flag("#sim-l", "Ligand concentrations cannot be negative.");
+
+    let factor = 1, free = false;
+    if (type === "csp") factor = parseOne("#sim-csp", "Maximum chemical shift perturbation");
+    if (type === "free") { factor = parseOne("#sim-ifree", "Free peak intensity"); free = true; }
+    if (type === "bound") factor = parseOne("#sim-ibound", "Bound peak intensity");
+    const tf = (f) => (free ? (1 - f) * factor : f * factor);
+
+    const xs = linspace(0, Lmax, 200);
+    const colors = palette(kds.length);
+    const lines = kds.map((kd, j) => ({
+      xs, ys: xs.map((L) => tf(fractionBound(L, P, kd))), color: colors[j], label: kdLabel(kd),
+    }));
+    const markers = kds.map((kd) => ({
+      xs: Ls, ys: Ls.map((L) => tf(fractionBound(L, P, kd))), shape: "circle", fill: "#ffffff", stroke: "#111111",
+    }));
+    drawPlot($("#sim-plot"), { lines, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type] }, animate);
+    lastSim = { P, Lmax, kds, Ls, type, factor, xs, curves: lines.map((l) => l.ys), points: markers.map((m) => m.ys) };
+    showError("#sim-error", "");
+  } catch (e) {
+    lastSim = null;
+    showError("#sim-error", String(e));
+  }
+}
+
+/* ================= Tab 2: swapping ================= */
+
+let lastSwap = null;
+function updateSwap(animate) {
+  const panel = $("#panel-swap");
+  clearBad(panel);
+  try {
+    const conc = parseList("#swap-l", "Ligand concentrations");
+    if (conc.length < 2) flag("#swap-l", "Please enter at least two concentrations (A0 and B0).");
+    if (conc[0] === conc[conc.length - 1]) flag("#swap-l", "The first (A0) and last (B0) concentrations must be different.");
+    const V = parseOne("#swap-v", "Total sample volume");
+    if (V <= 0) flag("#swap-v", "Total sample volume must be greater than 0.");
+
+    const r = swappingVolumes(conc, V);
+    lastSwap = Object.assign(r, { conc, V });
+    let html = "<thead><tr><th>Step</th><th>V<sub>sw</sub> (µL)</th><th>A (µM)</th><th>B (µM)</th><th>New points</th></tr></thead><tbody>";
+    r.VSW.forEach((v, i) => {
+      html += `<tr style="animation-delay:${(i * 0.08).toFixed(3)}s"><td>${i}</td><td>${fmtCell(v)}</td><td>${fmtCell(r.A[i])}</td><td>${fmtCell(r.B[i])}</td><td>${r.rowPoints[i].join(", ")}</td></tr>`;
+    });
+    $("#swap-table").innerHTML = html + "</tbody>";
+    $("#swap-points").innerHTML = r.points.map((p, i) => `<span class="chip" style="animation-delay:${(0.4 + i * 0.06).toFixed(3)}s">${p[0]}<sub>${p.slice(1)}</sub></span>`).join("");
+    if (animate) { replay($(".tablewrap"), "anim-rows"); replay($("#swap-points"), "anim-chips"); }
+    else { $(".tablewrap").classList.remove("anim-rows"); $("#swap-points").classList.remove("anim-chips"); }
+    const unsorted = conc.some((c, i) => i > 0 && c < conc[i - 1]);
+    showError("#swap-error", unsorted ? "Note: the concentrations are not in increasing order, so the scheme may not make sense." : "");
+    $("#swap-csv").disabled = $("#swap-pts-csv").disabled = false;
+  } catch (e) {
+    lastSwap = null;
+    $("#swap-table").innerHTML = "";
+    $("#swap-points").innerHTML = "";
+    $("#swap-csv").disabled = $("#swap-pts-csv").disabled = true;
+    showError("#swap-error", String(e));
+  }
+}
+
+/* ================= Tab 3: estimate Kd ================= */
+
+let lastEst = null;
+function updateEst(animate) {
+  const panel = $("#panel-est");
+  clearBad(panel);
+  try {
+    const P = parseOne("#est-p", "Protein concentration");
+    if (P <= 0) flag("#est-p", "Protein concentration must be greater than 0.");
+    const kds = parseList("#est-kd", "Dissociation constant");
+    if (kds.some((k) => k < 0)) flag("#est-kd", "Dissociation constants cannot be negative.");
+    const conc = parseList("#est-l", "Ligand concentrations");
+    const csp = parseList("#est-csp", "CSPs");
+    if (conc.length < 2) flag("#est-l", "Please enter at least two points (A0 … B0).");
+    if (csp.length !== conc.length) flag("#est-csp", `Please enter one CSP per ligand concentration (${conc.length} expected, ${csp.length} given).`);
+    const lastL = conc[conc.length - 1], lastCsp = csp[csp.length - 1];
+    if (lastL <= 0) flag("#est-l", "The last concentration (B0) must be greater than 0.");
+    if (lastCsp === 0) flag("#est-csp", "The CSP of B0 (last value) cannot be 0, because all CSPs are divided by it.");
+
+    const xs = linspace(0, lastL, 100);
+    const colors = palette(kds.length);
+    const lines = [], markers = [];
+    kds.forEach((kd, j) => {
+      const f = xs.map((L) => fractionBound(L, P, kd));
+      const fEnd = f[f.length - 1];
+      lines.push({ xs, ys: f.map((v) => v / fEnd), color: colors[j], label: kdLabel(kd) });
+      const ft = conc.map((L) => fractionBound(L, P, kd));
+      const ftEnd = ft[ft.length - 1];
+      markers.push({ xs: conc, ys: ft.map((v) => v / ftEnd), shape: "tri", fill: "#ffffff", stroke: colors[j] });
+    });
+    markers.push({ xs: conc, ys: csp.map((c) => c / lastCsp), shape: "circle", fill: "#ffffff", stroke: "#111111" });
+    drawPlot($("#est-plot"), {
+      lines, markers, xLabel: X_LABEL,
+      yLabel: `CSP${sub("i")}${unsub(" / CSP")}${sub("B0")}`,
+    }, animate);
+    lastEst = { P, kds, conc, csp, xs, curves: lines.map((l) => l.ys),
+      simPts: markers.slice(0, -1).map((m) => m.ys), measured: markers[markers.length - 1].ys };
+    showError("#est-error", "");
+  } catch (e) {
+    lastEst = null;
+    showError("#est-error", String(e));
+  }
+}
+
+/* ================= Wiring ================= */
+
+const updaters = { "panel-sim": updateSim, "panel-swap": updateSwap, "panel-est": updateEst };
+
+// Sliding indicators (tab bar + plot-type selector)
+function slideTo(ind, el) {
+  ind.style.width = el.offsetWidth + "px";
+  ind.style.height = el.offsetHeight + "px";
+  ind.style.transform = `translate(${el.offsetLeft}px, ${el.offsetTop}px)`;
+}
+function placeIndicators() {
+  slideTo($(".tab-ind"), $('.tab[aria-selected="true"]'));
+  slideTo($(".seg-ind"), $('input[name="simtype"]:checked').closest("label"));
+}
+
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  if (t.getAttribute("aria-selected") === "true") return;
+  document.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-selected", x === t ? "true" : "false"));
+  document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === "panel-" + t.dataset.tab));
+  slideTo($(".tab-ind"), t);
+  const fn = updaters["panel-" + t.dataset.tab];
+  if (fn) fn(true);
+  requestAnimationFrame(() => slideTo($(".seg-ind"), $('input[name="simtype"]:checked').closest("label")));
+}));
+$("#sim-type").addEventListener("change", () => {
+  slideTo($(".seg-ind"), $('input[name="simtype"]:checked').closest("label"));
+  updateSim(true);
+});
+window.addEventListener("resize", placeIndicators);
+
+function debounce(fn, ms) { let h; return () => { clearTimeout(h); h = setTimeout(fn, ms); }; }
+Object.entries(updaters).forEach(([panelId, fn]) => {
+  const panel = document.getElementById(panelId);
+  panel.addEventListener("input", debounce(() => fn(false), 200));
+  panel.addEventListener("change", (e) => { if (e.target.type !== "radio") fn(false); });
+});
+
+document.querySelectorAll("input[data-default]").forEach((el) => (el.value = el.dataset.default));
+document.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", () => {
+  const panel = document.getElementById(b.dataset.reset);
+  panel.querySelectorAll("input[data-default]").forEach((el) => (el.value = el.dataset.default));
+  if (b.dataset.reset === "panel-sim") {
+    document.querySelector('input[name="simtype"][value="pb"]').checked = true;
+    slideTo($(".seg-ind"), $('input[name="simtype"]:checked').closest("label"));
+  }
+  updaters[b.dataset.reset](true);
+}));
+
+$("#sim-png").addEventListener("click", () => savePNG($("#sim-plot"), "Simulated_binding_curves.png"));
+$("#est-png").addEventListener("click", () => savePNG($("#est-plot"), "Plot_A1A2B1.png"));
+$("#swap-csv").addEventListener("click", () => {
+  if (!lastSwap) return;
+  downloadBlob(new Blob([swapSchemeCSV()], { type: "text/csv" }), "Swapping_scheme.csv");
+});
+$("#swap-pts-csv").addEventListener("click", () => {
+  if (!lastSwap) return;
+  downloadBlob(new Blob([swapPointsCSV()], { type: "text/csv" }), "Titration_points.csv");
+});
+
+$("#sim-csv").addEventListener("click", () => {
+  if (!lastSim) return toast("Fix the input error in this tab first.");
+  downloadBlob(new Blob([simCurvesCSV()], { type: "text/csv" }), "Simulated_binding_curves.csv");
+});
+$("#est-csv").addEventListener("click", () => {
+  if (!lastEst) return toast("Fix the input error in this tab first.");
+  downloadBlob(new Blob([estCurvesCSV()], { type: "text/csv" }), "Kd_estimation_curves.csv");
+});
+
+/* ================= Export (PDF report + ZIP) ================= */
+
+const TYPE_TEXT = { pb: "Fraction bound, p_b", csp: "CSP (ppm)", free: "Free peak intensity", bound: "Bound peak intensity" };
+const FACTOR_TEXT = { csp: "Max chemical shift perturbation (ppm)", free: "Free peak intensity, I0,f", bound: "Bound peak intensity, I0,b" };
+
+function csvText(rows) {
+  const cell = (v) => {
+    const t = typeof v === "number" ? pyFloat(v) : String(v);
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  return rows.map((r) => r.map(cell).join(",")).join("\n") + "\n";
+}
+function pointName(i, n) { return i === n - 1 ? "B0" : "A" + i; }
+
+function simCurvesCSV() {
+  const d = lastSim, col = TYPE_TEXT[d.type];
+  return csvText([["Ligand (uM)", ...d.kds.map((k) => `${col} | Kd ${k} uM`)],
+    ...d.xs.map((x, i) => [x, ...d.curves.map((c) => c[i])])]);
+}
+function simPointsCSV() {
+  const d = lastSim, col = TYPE_TEXT[d.type];
+  return csvText([["Ligand (uM)", ...d.kds.map((k) => `${col} | Kd ${k} uM`)],
+    ...d.Ls.map((x, i) => [x, ...d.points.map((c) => c[i])])]);
+}
+function estCurvesCSV() {
+  const d = lastEst;
+  return csvText([["Ligand (uM)", ...d.kds.map((k) => `CSP_i/CSP_B0 | Kd ${k} uM`)],
+    ...d.xs.map((x, i) => [x, ...d.curves.map((c) => c[i])])]);
+}
+function estPointsCSV() {
+  const d = lastEst, n = d.conc.length;
+  return csvText([["Point", "Ligand (uM)", "Measured CSP (ppm)", "Measured CSP_i/CSP_B0", ...d.kds.map((k) => `Simulated | Kd ${k} uM`)],
+    ...d.conc.map((x, i) => [pointName(i, n), x, d.csp[i], d.measured[i], ...d.simPts.map((c) => c[i])])]);
+}
+function swapSchemeCSV() {
+  const r = lastSwap;
+  return csvText([["", "V_sw [uL]", "A [uM]", "B [uM]"], ...r.VSW.map((v, i) => [String(i), v, r.A[i], r.B[i]])]);
+}
+function swapPointsCSV() { return ["titration points", ...lastSwap.points].join("\n") + "\n"; }
+
+function nowStamp() {
+  const d = new Date(), p = (n) => String(n).padStart(2, "0");
+  return { file: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`,
+           text: d.toLocaleString() };
+}
+function tabErrors() {
+  const out = [];
+  if (!lastSim) out.push(["1. Simulate binding curves", $("#sim-error").textContent]);
+  if (!lastSwap) out.push(["2. Swapping strategy", $("#swap-error").textContent]);
+  if (!lastEst) out.push(["3. Estimate Kd", $("#est-error").textContent]);
+  return out;
+}
+function inputsText(when) {
+  const L = [`NMR titration - swapping strategy`, `Exported: ${when}`, ``];
+  if (lastSim) {
+    const d = lastSim;
+    L.push(`1. SIMULATE BINDING CURVES`, `  Protein concentration P_T (uM): ${d.P}`, `  Maximum ligand concentration (uM): ${d.Lmax}`,
+      `  Kd values (uM): ${d.kds.join(", ")}`, `  Ligand concentrations (uM): ${d.Ls.join(", ")}`, `  Plot type: ${TYPE_TEXT[d.type]}`);
+    if (FACTOR_TEXT[d.type]) L.push(`  ${FACTOR_TEXT[d.type]}: ${d.factor}`);
+    L.push(``);
+  }
+  if (lastSwap) {
+    L.push(`2. SWAPPING STRATEGY`, `  Ligand concentrations (uM): ${lastSwap.conc.join(", ")}`, `  Total sample volume (uL): ${lastSwap.V}`,
+      `  Titration points: ${lastSwap.points.join(", ")}`, ``);
+  }
+  if (lastEst) {
+    const d = lastEst;
+    L.push(`3. ESTIMATE KD`, `  Protein concentration P_T (uM): ${d.P}`, `  Kd values compared (uM): ${d.kds.join(", ")}`,
+      `  Ligand concentrations A0..B0 (uM): ${d.conc.join(", ")}`, `  CSPs A0..B0 (ppm): ${d.csp.join(", ")}`, ``);
+  }
+  tabErrors().forEach(([t, e]) => L.push(`NOT INCLUDED - ${t}: ${e}`));
+  L.push(``, `Based on: Dcosta N, Black M, Huang R. A simulation-guided 'swapping' protocol for NMR titrations to study protein-protein interactions (2024).`);
+  return L.join("\n") + "\n";
+}
+
+// Minimal ZIP writer (files stored uncompressed), so no library is needed
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(d) { let c = 0xFFFFFFFF; for (let i = 0; i < d.length; i++) c = CRC_TABLE[(c ^ d[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files) {
+  const enc = new TextEncoder(), now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = f.data, crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const cdSize = central.reduce((s, a) => s + a.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/zip" });
+}
+
+async function exportZip() {
+  const st = nowStamp(), dir = `NMR_titration_export_${st.file}/`, enc = new TextEncoder();
+  const files = [{ name: dir + "Inputs.txt", data: enc.encode(inputsText(st.text)) }];
+  const add = (name, text) => files.push({ name: dir + name, data: enc.encode(text) });
+  const addPng = async (name, svg) => files.push({ name: dir + name, data: new Uint8Array(await (await svgToPngBlob(svg)).arrayBuffer()) });
+  if (lastSim) {
+    await addPng("1_Simulated_binding_curves.png", $("#sim-plot"));
+    add("1_Simulated_binding_curves.csv", simCurvesCSV());
+    add("1_Simulated_titration_points.csv", simPointsCSV());
+  }
+  if (lastSwap) {
+    add("2_Swapping_scheme.csv", swapSchemeCSV());
+    add("2_Titration_points.csv", swapPointsCSV());
+  }
+  if (lastEst) {
+    await addPng("3_Kd_estimation_plot.png", $("#est-plot"));
+    add("3_Kd_estimation_curves.csv", estCurvesCSV());
+    add("3_Kd_estimation_points.csv", estPointsCSV());
+  }
+  downloadBlob(makeZip(files), `NMR_titration_export_${st.file}.zip`);
+  const skipped = tabErrors().length;
+  toast(skipped ? `ZIP downloaded. ${skipped} tab(s) with input errors were left out.` : "ZIP downloaded with all plots and data.");
+}
+
+function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function kv(rows) { return `<table>${rows.map(([k, v]) => `<tr><th style="width:42%">${k}</th><td>${esc(v)}</td></tr>`).join("")}</table>`; }
+function plotClone(svg) { const c = svg.cloneNode(true); c.removeAttribute("class"); c.removeAttribute("id"); return c.outerHTML; }
+
+function exportPDF() {
+  const st = nowStamp(), h = [];
+  h.push(`<h1>NMR Titration: Simulation-Guided “Swapping” Strategy</h1><p class="meta">Report exported ${esc(st.text)}</p>`);
+  const skipped = tabErrors();
+  if (lastSim) {
+    const d = lastSim, rows = [["Protein concentration, P<sub>T</sub> (µM)", d.P], ["Maximum ligand concentration (µM)", d.Lmax],
+      ["K<sub>d</sub> values (µM)", d.kds.join(", ")], ["Ligand concentrations (µM)", d.Ls.join(", ")], ["Plot type", TYPE_TEXT[d.type]]];
+    if (FACTOR_TEXT[d.type]) rows.push([FACTOR_TEXT[d.type], d.factor]);
+    h.push(`<section><h2>1. Simulated 1:1 binding curves</h2><h4>Inputs</h4>${kv(rows)}<h4>Plot</h4>${plotClone($("#sim-plot"))}</section>`);
+  }
+  if (lastSwap) {
+    const r = lastSwap;
+    h.push(`<section><h2>2. Swapping strategy</h2><h4>Inputs</h4>${kv([["Ligand concentrations (µM)", r.conc.join(", ")], ["Total sample volume (µL)", r.V]])}
+      <h4>Swapping scheme</h4><table><tr><th>Step</th><th>V<sub>sw</sub> (µL)</th><th>A (µM)</th><th>B (µM)</th><th>New points</th></tr>
+      ${r.VSW.map((v, i) => `<tr><td>${i}</td><td>${fmtCell(v)}</td><td>${fmtCell(r.A[i])}</td><td>${fmtCell(r.B[i])}</td><td>${r.rowPoints[i].join(", ")}</td></tr>`).join("")}</table>
+      <h4>Titration points (in measurement order)</h4><p>${r.points.join(", ")}</p></section>`);
+  }
+  if (lastEst) {
+    const d = lastEst, n = d.conc.length;
+    h.push(`<section><h2>3. K<sub>d</sub> estimation</h2><h4>Inputs</h4>${kv([["Protein concentration, P<sub>T</sub> (µM)", d.P], ["K<sub>d</sub> values compared (µM)", d.kds.join(", ")]])}
+      <h4>Measured points</h4><table><tr><th>Point</th><th>Ligand (µM)</th><th>CSP (ppm)</th><th>CSP<sub>i</sub>/CSP<sub>B0</sub></th></tr>
+      ${d.conc.map((x, i) => `<tr><td>${pointName(i, n)}</td><td>${x}</td><td>${d.csp[i]}</td><td>${fmtCell(d.measured[i])}</td></tr>`).join("")}</table>
+      <h4>Plot</h4>${plotClone($("#est-plot"))}</section>`);
+  }
+  if (skipped.length) h.push(`<p class="skip">Not included because of input errors: ${skipped.map(([t, e]) => `${esc(t)} (${esc(e)})`).join("; ")}</p>`);
+  h.push(`<p class="cite">Based on: Dcosta N, Black M, Huang R. A simulation-guided “swapping” protocol for NMR titrations to study protein–protein interactions (2024).</p>`);
+  $("#report").innerHTML = h.join("");
+  const oldTitle = document.title;
+  document.title = `NMR titration report ${st.file}`;
+  window.addEventListener("afterprint", () => { document.title = oldTitle; $("#report").innerHTML = ""; }, { once: true });
+  window.print();
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast");
+  clearTimeout(toastTimer);
+  t.textContent = msg; t.hidden = false; t.classList.remove("out");
+  replay(t, "toast");
+  toastTimer = setTimeout(() => { t.classList.add("out"); toastTimer = setTimeout(() => (t.hidden = true), 600); }, 3800);
+}
+
+const exportBtn = $("#export-btn"), exportMenu = $("#export-menu");
+function setMenu(open) {
+  exportMenu.hidden = !open;
+  exportBtn.setAttribute("aria-expanded", String(open));
+  if (open) exportMenu.querySelector("button").focus();
+}
+exportBtn.addEventListener("click", (e) => { e.stopPropagation(); setMenu(exportMenu.hidden); });
+document.addEventListener("click", (e) => { if (!exportMenu.hidden && !exportMenu.contains(e.target)) setMenu(false); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !exportMenu.hidden) { setMenu(false); exportBtn.focus(); } });
+exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("click", () => {
+  setMenu(false);
+  if (tabErrors().length === 3) return toast("Nothing to export yet. Fix the input errors first.");
+  if (b.dataset.export === "zip") exportZip().catch((e) => toast("Export failed: " + e));
+  else exportPDF();
+}));
+
+// "Install app" button (Chrome / Edge offer this when the page is served from the website)
+let installPrompt = null;
+addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; $("#install-btn").hidden = false; });
+addEventListener("appinstalled", () => { $("#install-btn").hidden = true; installPrompt = null; toast("Installed. Open “NMR Titration” from your apps."); });
+$("#install-btn").addEventListener("click", async () => {
+  if (!installPrompt) return;
+  installPrompt.prompt();
+  await installPrompt.userChoice;
+  installPrompt = null;
+  $("#install-btn").hidden = true;
+});
+
+// exposed for testing
+window.NMR = { fractionBound, linspace, swappingVolumes, pyFloat, makeZip, crc32, inputsText };
+
+updateSim(true); updateSwap(false); updateEst(false);
+placeIndicators();
+requestAnimationFrame(() => document.fonts && document.fonts.ready.then(placeIndicators));
+</script>
+</body>
+</html>
