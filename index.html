@@ -329,6 +329,14 @@
   .menu b { display: block; font-weight: 620; color: var(--accent); }
   .menu span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 1px; }
 
+  .update-bar { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px;
+    max-width: min(94vw, 620px); padding: 10px 12px 10px 18px; border-radius: 999px; font-size: 14px;
+    background: rgba(255,255,255,.95); animation: toastIn .6s var(--ease) both; }
+  :root[data-theme="dark"] .update-bar { background: rgba(26,32,50,.96); }
+  .update-bar .btn { padding: 7px 14px; font-size: 13px; }
+  .ver { opacity: .7; }
+  @media (max-width: 640px) { .update-bar { border-radius: 18px; flex-wrap: wrap; justify-content: center; text-align: center; } }
+
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; max-width: min(92vw, 560px);
     padding: 11px 18px; border-radius: 999px; font-size: 14px; color: var(--text);
     background: rgba(255,255,255,.9); animation: toastIn .6s var(--ease) both; }
@@ -822,7 +830,8 @@
       <h3>Good to know</h3>
       <ul>
         <li><b>Online version:</b> <a href="https://neev1512.github.io/nmr-titration/" target="_blank" rel="noopener">neev1512.github.io/nmr-titration</a>. Open it in Chrome or Edge and click <b>Install app</b> (in Safari: <b>File → Add to Dock</b>) to get it as an app that also works offline.</li>
-        <li>The standalone HTML file works offline too and needs no installation. Share it by copying the file.</li>
+        <li>The standalone HTML file works offline too and needs no installation, but it does not update itself — install the app above if you want updates.</li>
+        <li><b>Updates:</b> the installed app checks for a new version when you open it and every half hour while it is open. When one is ready, a bar offers <b>Reload</b>. Offline, it keeps working on the copy you already have and updates next time you have internet.</li>
         <li>The model assumes 1:1 binding (P + L ⇌ PL) in fast exchange.</li>
         <li>If you use it for published work, please cite the paper below.</li>
       </ul>
@@ -833,6 +842,7 @@
     Based on: Dcosta N, Black M, Huang R. <em>A simulation-guided “swapping” protocol for NMR titrations to study protein–protein interactions</em> (2024).
     Original notebook: <a href="https://colab.research.google.com/drive/1ibG-32ZzZIje11yDrjX1_1Ryd5j3H8_n" target="_blank" rel="noopener">Google Colab (version 2)</a>.
     Online app: <a href="https://neev1512.github.io/nmr-titration/" target="_blank" rel="noopener">neev1512.github.io/nmr-titration</a>.
+    <span class="ver">v<span id="app-version"></span></span>
   </footer>
 </div>
 
@@ -1956,6 +1966,39 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
   if (b.dataset.export === "zip") exportZip().catch((e) => toast("Export failed: " + e));
   else exportPDF();
 }));
+
+/* ================= Version + automatic updates ================= */
+
+const APP_VERSION = "1.2";          // keep in step with website/version.json
+$("#app-version").textContent = APP_VERSION;
+
+function showUpdateBar(newVersion) {
+  if ($("#update-bar")) return;
+  const bar = document.createElement("div");
+  bar.id = "update-bar";
+  bar.className = "update-bar glass";
+  bar.innerHTML = `<span>Version ${newVersion} is available (you have ${APP_VERSION}).</span>
+    <button class="btn" type="button">Reload</button><button class="btn plain" type="button">Later</button>`;
+  bar.querySelector(".btn").addEventListener("click", () => location.reload());
+  bar.querySelector(".btn.plain").addEventListener("click", () => bar.remove());
+  document.body.appendChild(bar);
+}
+
+// Only meaningful when served from the website; a local file has nothing to check against
+async function checkForUpdate() {
+  if (!location.protocol.startsWith("http") || document.hidden) return;
+  try {
+    const r = await fetch("version.json?t=" + Date.now(), { cache: "no-store" });
+    if (!r.ok) return;
+    const v = (await r.json()).version;
+    if (v && v !== APP_VERSION) showUpdateBar(v);
+  } catch (e) { /* offline: keep using the installed copy */ }
+}
+if (location.protocol.startsWith("http")) {
+  setTimeout(checkForUpdate, 4000);
+  setInterval(checkForUpdate, 30 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkForUpdate(); });
+}
 
 /* ================= Light / dark theme ================= */
 

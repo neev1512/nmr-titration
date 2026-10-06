@@ -2,7 +2,7 @@
 // Pages: try the network first (so updates show up right away), fall back to the saved copy offline.
 // Icons and other files: use the saved copy.
 // Bump VERSION whenever any file listed in ASSETS changes.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `nmr-swap-${VERSION}`;
 const ASSETS = [
   "./",
@@ -29,7 +29,14 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-  if (req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
+  const url = new URL(req.url);
+  if (req.method !== "GET" || url.origin !== location.origin) return;
+
+  // version.json must never come from the cache: it is how the app notices an update
+  if (url.pathname.endsWith("/version.json")) {
+    event.respondWith(fetch(req, { cache: "no-store" }).catch(() => caches.match(req)));
+    return;
+  }
 
   if (req.mode === "navigate") {
     event.respondWith(
