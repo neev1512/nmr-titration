@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <title>NMR Titration</title>
 <meta name="description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate.">
 <meta name="theme-color" content="#eef3fb">
@@ -20,6 +20,13 @@
 <meta name="twitter:title" content="NMR Titration">
 <meta name="twitter:description" content="Plan NMR titrations with the simulation-guided swapping strategy: binding curves, swap volumes and a quick Kd estimate. Runs in your browser.">
 <meta name="twitter:image" content="https://neev1512.github.io/nmr-titration/icons/og-image.jpg">
+<script>
+  // Light/dark theme: light by default, remembers the viewer's choice
+  try {
+    const t = localStorage.getItem("nmrTheme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
 <script>
   // Startup splash: once per browser session, never for people who prefer reduced motion
   try {
@@ -142,6 +149,13 @@
     outline: none; background: #fff; border-color: rgba(106, 143, 224, .7);
     box-shadow: 0 0 0 4px rgba(106, 143, 224, .18), 0 6px 18px rgba(59, 111, 196, .10);
   }
+  .field input.arrive { animation: arrive .6s var(--ease); }
+  @keyframes arrive { from { box-shadow: 0 0 0 7px rgba(106, 143, 224, .28); } }
+  .pulse { animation: pulse 1.3s var(--ease); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(106, 143, 224, .45); } 35% { box-shadow: 0 0 0 8px rgba(106, 143, 224, .18); } 100% { box-shadow: 0 0 0 14px rgba(106, 143, 224, 0); } }
+  kbd { font: inherit; font-size: .85em; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: rgba(255,255,255,.75);
+    border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line); }
+  :root[data-theme="dark"] kbd { background: rgba(44,52,78,.7); }
   .field input.bad { border-color: #e2a0a0; background: #fff8f8; animation: shake .6s var(--ease); }
   @keyframes shake { 20% { transform: translateX(-4px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
 
@@ -162,6 +176,43 @@
   .seg label:has(input:focus-visible) { outline: 2px solid var(--accent-2); }
 
   .extra { animation: rise .7s var(--ease) both; }
+
+  /* Example presets */
+  .presets { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 16px; }
+  .presets-label { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-right: 2px; }
+  .preset { display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12.5px; font-weight: 580; cursor: pointer;
+    padding: 5px 11px 5px 8px; border-radius: 999px; color: var(--muted);
+    background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 2px 8px rgba(60,80,120,.07);
+    transition: color .45s var(--ease), background .45s var(--ease), transform .45s var(--spring), box-shadow .45s var(--ease); }
+  .preset svg { width: 16px; height: 16px; }
+  .preset:hover { color: var(--accent); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(59,111,196,.14); }
+  .preset:active { transform: scale(.96); transition-duration: .15s; }
+  .preset.active { color: #fff; background: linear-gradient(180deg, #7fa3ee, #6a78d8); border-color: rgba(255,255,255,.6); }
+
+  /* Sliders */
+  .slider { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 22px; margin: 6px 0 0; background: transparent; cursor: pointer; --p: 50%; }
+  .slider:focus { outline: none; }
+  .slider::-webkit-slider-runnable-track { height: 6px; border-radius: 999px;
+    background: linear-gradient(90deg, #8fb2f2, #8f86e2) 0 / var(--p) 100% no-repeat, rgba(120, 140, 180, .18); }
+  .slider::-moz-range-track { height: 6px; border-radius: 999px; background: rgba(120, 140, 180, .18); }
+  .slider::-moz-range-progress { height: 6px; border-radius: 999px; background: linear-gradient(90deg, #8fb2f2, #8f86e2); }
+  .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -7px; border-radius: 50%;
+    background: #fff; border: 1px solid rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(59, 111, 196, .35), inset 0 -2px 4px rgba(59,111,196,.12);
+    transition: transform .35s var(--spring), box-shadow .35s var(--ease); }
+  .slider::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 1px solid #fff;
+    box-shadow: 0 2px 8px rgba(59, 111, 196, .35); }
+  .slider:hover::-webkit-slider-thumb, .slider:focus-visible::-webkit-slider-thumb { transform: scale(1.12); box-shadow: 0 3px 12px rgba(59, 111, 196, .45), 0 0 0 5px rgba(106,143,224,.16); }
+  .slider:active::-webkit-slider-thumb { transform: scale(1.2); }
+
+  .explore { margin-top: 10px; padding: 10px 12px 8px; border-radius: 14px; background: rgba(255,255,255,.45);
+    border: 1px dashed rgba(120, 140, 180, .35); transition: background .5s var(--ease), border-color .5s var(--ease); }
+  .explore.active { background: rgba(255,255,255,.75); border-style: solid; border-color: rgba(255,255,255,.95); box-shadow: 0 4px 14px rgba(59,111,196,.10); }
+  .explore-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 580; }
+  .explore-val { font-size: 12.5px; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .explore.active .explore-val { color: var(--text); font-weight: 650; }
+  .explore-actions { display: flex; gap: 6px; margin-top: 6px; animation: rise .5s var(--ease) both; }
+  .explore-actions[hidden] { display: none; }
+  button.btn.mini { padding: 5px 12px; font-size: 12.5px; }
 
   .btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   button.btn {
@@ -207,14 +258,44 @@
   tbody tr:hover { background: rgba(106, 143, 224, .08); }
   .tablewrap { overflow-x: auto; border-radius: 16px; background: rgba(255,255,255,.85); border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
   .anim-rows tbody tr { opacity: 0; animation: rise .75s var(--ease) forwards; }
+  td.chg { animation: cellGlow 1.4s var(--ease); border-radius: 6px; }
+  @keyframes cellGlow { 0% { background: rgba(106, 143, 224, .30); color: var(--accent); } 100% { background: transparent; } }
+  tr.newrow { animation: rise .6s var(--ease) both; }
+  .chip.pop { animation: pop .55s var(--spring) both; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip { background: rgba(255,255,255,.8); border: 1px solid #fff; color: var(--accent); border-radius: 999px;
     padding: 3px 11px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(59,111,196,.10); }
   .anim-chips .chip { opacity: 0; animation: pop .6s var(--spring) forwards; }
   h3 { font-size: 14.5px; margin: 22px 0 8px; font-weight: 650; }
   .diagram { margin-top: 20px; border-radius: 16px; padding: 12px; background: rgba(255,255,255,.5); border: 1px solid rgba(255,255,255,.9); }
-  .diagram svg { display: block; width: 100%; height: auto; }
+  .diagram svg { display: block; width: 100%; max-width: 380px; height: auto; margin: 0 auto; }
   .flow { stroke-dasharray: 6 5; animation: flow 2.6s linear infinite; }
+  .viz-title { font-size: 13px; font-weight: 650; color: var(--muted); margin: 2px 4px 2px; }
+  .viz-caption { margin: 4px 4px 8px; font-size: 13px; color: var(--text); min-height: 3em; }
+  .viz-caption sub { font-size: 70%; }
+  .viz-controls { display: flex; align-items: center; gap: 8px; padding: 0 2px 2px; flex-wrap: wrap; }
+  .vbtn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.95); display: grid; place-items: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(232,240,252,.95)); color: var(--accent); cursor: pointer;
+    box-shadow: 0 3px 10px rgba(59,111,196,.16), var(--shine); transition: transform .45s var(--spring), box-shadow .45s var(--ease), opacity .3s; padding: 0; }
+  .vbtn svg { width: 18px; height: 18px; }
+  .vbtn:hover { transform: translateY(-1px) scale(1.06); }
+  .vbtn:active { transform: scale(.94); transition-duration: .15s; }
+  .vbtn:disabled { opacity: .4; cursor: default; transform: none; }
+  .vbtn.play { width: 40px; height: 40px; background: linear-gradient(180deg, #7fa3ee, #6a78d8); color: #fff; border-color: rgba(255,255,255,.6); }
+  .vbtn .i-pause { display: none; }
+  .playing .vbtn .i-pause { display: inline; }
+  .playing .vbtn .i-play { display: none; }
+  .viz-dots { display: flex; gap: 5px; flex-wrap: wrap; margin-left: 4px; }
+  .vdot { width: 9px; height: 9px; padding: 0; border-radius: 50%; border: none; cursor: pointer; background: rgba(120,140,180,.28);
+    transition: background .5s var(--ease), transform .5s var(--spring), width .5s var(--spring); }
+  .vdot.done { background: rgba(106,143,224,.55); }
+  .vdot.on { background: var(--accent); width: 20px; border-radius: 999px; }
+  #swap-viz.disabled svg { opacity: .4; }
+  #swap-table tbody tr[data-step] { cursor: pointer; }
+  #swap-table tbody tr.cur td { background: rgba(106, 143, 224, .14); }
+  #swap-table tbody tr.cur td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+  .chip { transition: background .5s var(--ease), color .5s var(--ease), transform .5s var(--spring); }
+  .chip.cur { background: var(--accent); color: #fff; transform: translateY(-2px); }
   @keyframes flow { to { stroke-dashoffset: -22; } }
 
   .help { max-width: 780px; }
@@ -239,7 +320,7 @@
   .export .caret { display: inline-block; margin-left: 6px; transition: transform .5s var(--ease); }
   .export .btn[aria-expanded="true"] .caret { transform: rotate(180deg); }
   .menu { position: absolute; right: 0; top: calc(100% + 10px); width: 300px; padding: 6px; border-radius: 16px;
-    background: rgba(255,255,255,.88); transform-origin: top right; animation: menuIn .45s var(--ease) both; }
+    background: rgba(255,255,255,.97); transform-origin: top right; animation: menuIn .45s var(--ease) both; }
   .menu[hidden] { display: none; }
   @keyframes menuIn { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
   .menu button { display: block; width: 100%; text-align: left; border: none; background: transparent; font: inherit;
@@ -295,12 +376,29 @@
   @keyframes splashIcon { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: none; } }
   @keyframes splashOut { to { opacity: 0; transform: scale(1.04); filter: blur(6px); } }
 
+  /* Legend highlight */
+  .plotbox svg [data-i] { transition: opacity .45s var(--ease), stroke-width .45s var(--ease); }
+  .plotbox svg.focus [data-i] { opacity: .14; }
+  .plotbox svg.focus [data-i].on { opacity: 1; }
+  .plotbox svg.focus path[data-i].on { stroke-width: 3.6; }
+  .plotbox svg .lg { cursor: pointer; }
+  .plotbox svg { cursor: crosshair; }
+  .zoom-reset { position: absolute; z-index: 4; top: 12px; right: 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 5px 11px; border-radius: 999px; color: var(--accent); background: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.95);
+    box-shadow: 0 3px 10px rgba(59,111,196,.16); animation: rise .4s var(--ease) both; }
+  .zoom-reset[hidden] { display: none; }
+  .zoom-reset:hover { background: #fff; }
+  :root[data-theme="dark"] .zoom-reset { background: rgba(26,32,50,.92); border-color: rgba(255,255,255,.1); }
+  .plotbox svg:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 10px; }
+  .plotbox svg .lg.on .hit { fill: rgba(106, 143, 224, .10); }
+
   /* Plot hover tooltip */
   .plotbox { position: relative; }
   .plotbox svg { touch-action: pan-y; }
-  .xhair { position: absolute; width: 1.5px; margin-left: -0.75px; background: rgba(59, 111, 196, .45); border-radius: 1px; pointer-events: none; display: none; }
-  .hdot { position: absolute; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 2px solid #fff;
-    box-shadow: 0 1px 5px rgba(30, 40, 80, .3); pointer-events: none; display: none; transition: top .12s ease-out; }
+  .xhair { position: absolute; top: 0; left: 0; width: 1.5px; margin-left: -0.75px; background: rgba(59, 111, 196, .45); border-radius: 1px;
+    pointer-events: none; display: none; will-change: transform; }
+  .hdot { position: absolute; top: 0; left: 0; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 2px solid #fff;
+    box-shadow: 0 1px 5px rgba(30, 40, 80, .3); pointer-events: none; display: none; will-change: transform; }
   .tip { position: absolute; z-index: 3; pointer-events: none; display: none; min-width: 170px; padding: 9px 11px; border-radius: 12px;
     font-size: 12.5px; line-height: 1.45; color: var(--text); font-variant-numeric: tabular-nums;
     background: rgba(255, 255, 255, .9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
@@ -312,7 +410,110 @@
   .tip .row .v { margin-left: auto; font-weight: 600; padding-left: 12px; }
   .tip .sw { width: 12px; height: 3px; border-radius: 2px; flex: none; }
   .tip .sw.pt { width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 2px solid #111; }
+  .tip .row.dim { opacity: .35; }
+  .tip .sw.dash { background: repeating-linear-gradient(90deg, #1f2a37 0 4px, transparent 4px 7px) !important; }
   .tip .row.data { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+
+  /* Phones */
+  @media (max-width: 640px) {
+    .wrap { padding: 16px 12px 32px; }
+    header { padding: 16px 18px; }
+    header h1 { font-size: 22px; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 22px; margin: 12px 0 12px; }
+    .tab { padding: 9px 6px; font-size: 13.5px; text-align: center; white-space: nowrap; }
+    .tab .tl { display: none; }
+    .panel { padding: 18px 14px; }
+    .panel h2 { font-size: 16.5px; }
+    .field input[type="text"] { font-size: 16px; }   /* 16px stops iPhone from zooming in on focus */
+    .out-actions .btn { flex: 1 1 auto; }
+    .menu { left: 0; right: auto; width: min(300px, calc(100vw - 48px)); transform-origin: top left; }
+    .plotbox { padding: 6px; }
+    th, td { padding: 7px 7px; }
+    .tip { min-width: 150px; font-size: 12px; }
+  }
+
+  /* Theme toggle button */
+  .theme-btn { width: 42px; height: 42px; padding: 0 !important; display: grid; place-items: center; }
+  .theme-btn svg { width: 20px; height: 20px; overflow: visible; }
+  .theme-btn .i-sun, .theme-btn .i-moon { transform-box: fill-box; transform-origin: center;
+    transition: transform .7s var(--spring), opacity .45s var(--ease); }
+  .theme-btn .i-sun { opacity: 0; transform: rotate(-90deg) scale(.4); }
+  .theme-btn .i-moon { opacity: 1; transform: none; }
+  :root[data-theme="dark"] .theme-btn .i-sun { opacity: 1; transform: none; }
+  :root[data-theme="dark"] .theme-btn .i-moon { opacity: 0; transform: rotate(90deg) scale(.4); }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+  :root.theme-anim *, :root.theme-anim *::before, :root.theme-anim *::after {
+    transition: background-color .7s var(--ease), color .7s var(--ease), border-color .7s var(--ease), fill .7s var(--ease), stroke .7s var(--ease) !important; }
+
+  /* ================= Dark theme ================= */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --text: #e6ebf5;
+    --muted: #9eabc2;
+    --accent: #93b3f6;
+    --accent-2: #a9bdf8;
+    --accent-soft: rgba(147, 179, 246, 0.16);
+    --glass: rgba(26, 32, 50, 0.58);
+    --glass-strong: rgba(58, 68, 100, 0.85);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --line: rgba(160, 180, 220, 0.14);
+    --shadow: 0 10px 34px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shine: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    --error-soft: rgba(140, 44, 56, 0.32);
+    --error-text: #ffb8b8;
+  }
+  :root[data-theme="dark"] body { background: linear-gradient(160deg, #0e1320 0%, #111a2b 45%, #16132a 100%); }
+  :root[data-theme="dark"] .blob { opacity: .5; }
+  :root[data-theme="dark"] .b1 { background: #26407e; }
+  :root[data-theme="dark"] .b2 { background: #1d4a44; }
+  :root[data-theme="dark"] .b3 { background: #3a2c66; }
+  :root[data-theme="dark"] .b4 { background: #4a3226; opacity: .35; }
+  :root[data-theme="dark"] header h1, :root[data-theme="dark"] .splash-name { background-image: linear-gradient(90deg, #a3c0fa, #bda9f5); }
+  :root[data-theme="dark"] html.splash #splash, :root[data-theme="dark"].splash #splash { background: linear-gradient(160deg, #0e1320 0%, #111a2b 45%, #16132a 100%); }
+  :root[data-theme="dark"] .tab-ind { border-color: rgba(255,255,255,.1); box-shadow: 0 4px 14px rgba(0,0,0,.3), var(--shine); }
+  :root[data-theme="dark"] .tab[aria-selected="true"] .num { color: #0f1422; }
+  :root[data-theme="dark"] .field input[type="text"] { background: rgba(12, 16, 28, .55); border-color: rgba(255,255,255,.09); box-shadow: inset 0 1px 2px rgba(0,0,0,.3); }
+  :root[data-theme="dark"] .field input[type="text"]:hover { background: rgba(12, 16, 28, .7); }
+  :root[data-theme="dark"] .field input[type="text"]:focus { background: #131a2b; border-color: rgba(147,179,246,.6); box-shadow: 0 0 0 4px rgba(147,179,246,.16); }
+  :root[data-theme="dark"] .field input.bad { background: rgba(140, 44, 56, .22); border-color: #b86470; }
+  :root[data-theme="dark"] .seg { background: rgba(12,16,28,.4); border-color: rgba(255,255,255,.07); }
+  :root[data-theme="dark"] .seg-ind { background: #2c3654; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
+  :root[data-theme="dark"] button.btn { background: linear-gradient(180deg, rgba(62,72,104,.92), rgba(44,52,78,.92)); border-color: rgba(255,255,255,.09); box-shadow: 0 4px 14px rgba(0,0,0,.3), var(--shine); }
+  :root[data-theme="dark"] button.btn.plain { background: rgba(44,52,78,.6); }
+  :root[data-theme="dark"] .error { border-color: rgba(220, 120, 130, .35); }
+  :root[data-theme="dark"] .plotbox { background: rgba(14, 19, 32, .88); border-color: rgba(255,255,255,.07); box-shadow: 0 6px 22px rgba(0,0,0,.3); }
+  :root[data-theme="dark"] .plotbox svg .p-bg { fill: #121829; }
+  :root[data-theme="dark"] .plotbox svg .p-grid { stroke: #222b40; }
+  :root[data-theme="dark"] .plotbox svg .p-ax { stroke: #7f8ba3; }
+  :root[data-theme="dark"] .plotbox svg .p-tick { fill: #9eabc2; }
+  :root[data-theme="dark"] .plotbox svg .p-txt { fill: #e6ebf5; }
+  :root[data-theme="dark"] .plotbox svg .p-dot { fill: #121829; stroke: #e6ebf5; }
+  :root[data-theme="dark"] .plotbox svg .p-hollow { fill: #121829; }
+  :root[data-theme="dark"] .plotbox svg .p-exp { stroke: #e6ebf5; }
+  :root[data-theme="dark"] .hdot { border-color: #121829; }
+  :root[data-theme="dark"] .tip, :root[data-theme="dark"] .toast, :root[data-theme="dark"] .menu { background: rgba(26, 32, 50, .95); border-color: rgba(255,255,255,.09); }
+  :root[data-theme="dark"] .tip { box-shadow: 0 8px 26px rgba(0,0,0,.45); }
+  :root[data-theme="dark"] .tip .sw.pt { background: #121829; border-color: #e6ebf5; }
+  :root[data-theme="dark"] .tip .sw.dash { background: repeating-linear-gradient(90deg, #e6ebf5 0 4px, transparent 4px 7px) !important; }
+  :root[data-theme="dark"] .tablewrap { background: rgba(14, 19, 32, .6); border-color: rgba(255,255,255,.07); }
+  :root[data-theme="dark"] th { background: rgba(58, 70, 102, .45); }
+  :root[data-theme="dark"] .chip { background: rgba(44, 54, 84, .8); border-color: rgba(255,255,255,.06); }
+  :root[data-theme="dark"] .chip.cur { background: var(--accent); color: #0f1422; }
+  :root[data-theme="dark"] .diagram { background: rgba(14, 19, 32, .45); border-color: rgba(255,255,255,.07); }
+  :root[data-theme="dark"] .viz-g { fill: #e6ebf5; }
+  :root[data-theme="dark"] .viz-g .t-bg { fill: #161d2f; }
+  :root[data-theme="dark"] .viz-g .t-mut { fill: #9eabc2; }
+  :root[data-theme="dark"] .viz-g .t-acc { fill: #93b3f6; }
+  :root[data-theme="dark"] .vbtn { background: linear-gradient(180deg, rgba(62,72,104,.95), rgba(44,52,78,.95)); border-color: rgba(255,255,255,.09); }
+  :root[data-theme="dark"] .vbtn.play { background: linear-gradient(180deg, #7fa3ee, #6a78d8); color: #fff; }
+  :root[data-theme="dark"] .vdot { background: rgba(160,180,220,.22); }
+  :root[data-theme="dark"] .preset { background: rgba(44,52,78,.6); border-color: rgba(255,255,255,.07); box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  :root[data-theme="dark"] .explore { background: rgba(14,19,32,.35); border-color: rgba(160,180,220,.22); }
+  :root[data-theme="dark"] .explore.active { background: rgba(26,32,50,.7); border-color: rgba(255,255,255,.1); }
+  :root[data-theme="dark"] .slider::-webkit-slider-runnable-track { background: linear-gradient(90deg, #7fa3ee, #8f86e2) 0 / var(--p) 100% no-repeat, rgba(160,180,220,.18); }
+  :root[data-theme="dark"] .slider::-moz-range-track { background: rgba(160,180,220,.18); }
+  :root[data-theme="dark"] .slider::-webkit-slider-thumb { background: #dfe7f7; border-color: #dfe7f7; }
+  :root[data-theme="dark"] .help code { background: rgba(44,52,78,.7); border-color: rgba(255,255,255,.07); }
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -350,6 +551,13 @@
     <h1>NMR Titration: Simulation-Guided “Swapping” Strategy</h1>
     <div class="header-actions">
     <button class="btn plain" id="install-btn" hidden>Install app</button>
+    <button class="btn plain theme-btn" id="theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <g class="i-sun"><circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></g>
+        <path class="i-moon" d="M20.2 14.6A8.3 8.3 0 0 1 9.4 3.8a8.3 8.3 0 1 0 10.8 10.8z" fill="currentColor"/>
+      </svg>
+    </button>
     <div class="export">
       <button class="btn" id="export-btn" aria-haspopup="menu" aria-expanded="false">Export<span class="caret">▾</span></button>
       <div class="menu glass" id="export-menu" role="menu" hidden>
@@ -362,8 +570,8 @@
 
   <div class="tabs glass" role="tablist">
     <span class="tab-ind" aria-hidden="true"></span>
-    <button class="tab" role="tab" aria-selected="true" data-tab="sim"><span class="num">1</span>Simulate binding curves</button>
-    <button class="tab" role="tab" aria-selected="false" data-tab="swap"><span class="num">2</span>Swapping strategy</button>
+    <button class="tab" role="tab" aria-selected="true" data-tab="sim"><span class="num">1</span>Simulate<span class="tl"> binding curves</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="swap"><span class="num">2</span>Swapping<span class="tl"> strategy</span></button>
     <button class="tab" role="tab" aria-selected="false" data-tab="est"><span class="num">3</span>Estimate K<sub>d</sub></button>
     <button class="tab" role="tab" aria-selected="false" data-tab="help"><span class="num">?</span>How to use</button>
   </div>
@@ -371,24 +579,37 @@
   <!-- ============ 1. Simulation ============ -->
   <section class="panel glass active" id="panel-sim" role="tabpanel">
     <h2>Simulate 1:1 binding curves (P + L ⇌ PL)</h2>
-    <p class="howto">Enter your parameters. The plot updates as you type. Separate multiple values with commas.</p>
+    <p class="howto">Enter your parameters. The plot updates as you type. Separate multiple values with commas, and press <kbd>Enter</kbd> to jump to the next box.</p>
     <div class="layout">
       <div>
+        <div class="presets" role="group" aria-label="Load an example">
+          <span class="presets-label">Examples</span>
+          <button class="preset" data-preset="paper"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3 3v11.4h-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 9.5h4.5M8 12.5h4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Paper</button>
+          <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
+          <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
+        </div>
         <div class="error" id="sim-error"></div>
         <div class="field">
           <label for="sim-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
-          <input type="text" id="sim-p" data-default="50">
+          <input type="text" inputmode="decimal" id="sim-p" data-default="50">
+          <input type="range" class="slider" data-for="sim-p" min="1" max="500" step="1" aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
         <div class="field">
           <label for="sim-lmax">Maximum ligand (titrant) concentration (µM)</label>
-          <input type="text" id="sim-lmax" data-default="900">
+          <input type="text" inputmode="decimal" id="sim-lmax" data-default="900">
+          <input type="range" class="slider" data-for="sim-lmax" min="1" max="4" step="0.01" data-log aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
         <div class="field">
           <label for="sim-kd">Dissociation constant(s), K<sub>d</sub> (µM)</label>
           <input type="text" id="sim-kd" data-default="0.5, 5, 10, 30, 50, 100, 200">
           <span class="hint">One or more values, comma-separated</span>
+          <div class="explore" data-panel="sim">
+            <div class="explore-head"><span>Explore a K<sub>d</sub></span><output class="explore-val">drag to try</output></div>
+            <input type="range" class="slider explore-range" min="-2" max="4" step="0.01" value="1.48" data-log aria-label="Explore a Kd value">
+            <div class="explore-actions" hidden><button class="btn mini" data-explore="add">Add to list</button><button class="btn mini plain" data-explore="hide">Hide</button></div>
+          </div>
         </div>
         <div class="field">
           <label for="sim-l">Ligand (titrant) concentrations (µM)</label>
@@ -407,23 +628,25 @@
         </div>
         <div class="field extra" id="sim-extra-csp" hidden>
           <label for="sim-csp">Maximum chemical shift perturbation, Δδ<sub>max</sub> (ppm)</label>
-          <input type="text" id="sim-csp" data-default="0">
+          <input type="text" inputmode="decimal" id="sim-csp" data-default="0">
+          <input type="range" class="slider" data-for="sim-csp" min="0" max="2" step="0.01" aria-label="Adjust with a slider">
           <span class="hint">Single value. A value of 0 draws a flat line.</span>
         </div>
         <div class="field extra" id="sim-extra-free" hidden>
           <label for="sim-ifree">Free peak intensity, I<sub>0,f</sub></label>
-          <input type="text" id="sim-ifree" data-default="1.0">
+          <input type="text" inputmode="decimal" id="sim-ifree" data-default="1.0">
+          <input type="range" class="slider" data-for="sim-ifree" min="0" max="2" step="0.01" aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
         <div class="field extra" id="sim-extra-bound" hidden>
           <label for="sim-ibound">Bound peak intensity, I<sub>0,b</sub></label>
           <input type="text" id="sim-ibound" data-default="1e7">
+          <input type="range" class="slider" data-for="sim-ibound" min="3" max="9" step="0.01" data-log aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
-        <div class="btns"><button class="btn plain" data-reset="panel-sim">Reset to example values</button></div>
       </div>
       <div>
-        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="sim-plot" hidden>Reset zoom</button><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
         <div class="out-actions"><button class="btn" id="sim-csv">Download data (CSV)</button><button class="btn" id="sim-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -435,6 +658,12 @@
     <p class="howto">Enter your planned ligand concentrations (usually the ones from tab 1) and the total sample volume. The swap volumes update as you type.</p>
     <div class="layout">
       <div>
+        <div class="presets" role="group" aria-label="Load an example">
+          <span class="presets-label">Examples</span>
+          <button class="preset" data-preset="paper"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3 3v11.4h-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 9.5h4.5M8 12.5h4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Paper</button>
+          <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
+          <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
+        </div>
         <div class="error" id="swap-error"></div>
         <div class="field">
           <label for="swap-l">Ligand (titrant) concentrations (µM)</label>
@@ -443,39 +672,49 @@
         </div>
         <div class="field">
           <label for="swap-v">Total sample volume (µL)</label>
-          <input type="text" id="swap-v" data-default="500">
+          <input type="text" inputmode="decimal" id="swap-v" data-default="500">
+          <input type="range" class="slider" data-for="swap-v" min="100" max="1000" step="5" aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
-        <div class="btns"><button class="btn plain" data-reset="panel-swap">Reset to example values</button></div>
-        <div class="diagram" aria-label="Swapping diagram">
-          <svg viewBox="0 0 320 210" role="img" aria-label="Samples A and B swap equal volumes">
+        <div class="diagram" id="swap-viz" aria-label="Swapping walkthrough">
+          <div class="viz-title">Walkthrough</div>
+          <svg id="viz-svg" viewBox="0 0 320 236" role="img" aria-label="Tubes A and B during the swapping steps">
             <defs>
               <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0,0 L10,5 L0,10 z" fill="#3d6fb8"/>
               </marker>
+              <clipPath id="tubeA"><rect x="52" y="44" width="46" height="128" rx="14"/></clipPath>
+              <clipPath id="tubeB"><rect x="222" y="44" width="46" height="128" rx="14"/></clipPath>
+              <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".35" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+              </linearGradient>
             </defs>
-            <g font-family="-apple-system, Helvetica, Arial, sans-serif" font-size="12" fill="#1f2a37">
-              <rect x="50" y="40" width="46" height="120" rx="12" fill="#ffffff" stroke="#8aa3c7" stroke-width="1.5"/>
-              <rect x="52" y="100" width="42" height="58" rx="10" fill="#e8f0fb"/>
-              <text x="73" y="30" text-anchor="middle" font-weight="600" font-size="15">A</text>
-              <text x="73" y="182" text-anchor="middle">protein only</text>
-              <text x="73" y="197" text-anchor="middle" fill="#5d6b7c">(low ligand)</text>
-
-              <rect x="224" y="40" width="46" height="120" rx="12" fill="#ffffff" stroke="#8aa3c7" stroke-width="1.5"/>
-              <rect x="226" y="100" width="42" height="58" rx="10" fill="#b9cff0"/>
-              <text x="247" y="30" text-anchor="middle" font-weight="600" font-size="15">B</text>
-              <text x="247" y="182" text-anchor="middle">protein + ligand</text>
-              <text x="247" y="197" text-anchor="middle" fill="#5d6b7c">(high ligand)</text>
-
-              <path d="M104,78 C140,52 180,52 216,78" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
-              <path d="M216,122 C180,148 140,148 104,122" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
-              <text x="160" y="50" text-anchor="middle" font-style="italic">V<tspan dy="3" font-size="9">sw</tspan></text>
-              <text x="160" y="160" text-anchor="middle" font-style="italic">V<tspan dy="3" font-size="9">sw</tspan></text>
-              <text x="160" y="104" text-anchor="middle" fill="#5d6b7c" font-size="11">swap equal</text>
-              <text x="160" y="118" text-anchor="middle" fill="#5d6b7c" font-size="11">volumes</text>
+            <g class="viz-g" font-family="-apple-system, Helvetica, Arial, sans-serif" fill="#1f2a37">
+              <text x="75" y="32" text-anchor="middle" font-weight="650" font-size="15">A</text>
+              <text x="245" y="32" text-anchor="middle" font-weight="650" font-size="15">B</text>
+              <g clip-path="url(#tubeA)"><rect class="t-bg" x="52" y="44" width="46" height="128" fill="#fff"/><rect id="liqA" x="52" y="96" width="46" height="80" fill="#eef4fd"/><rect x="52" y="44" width="46" height="128" fill="url(#gloss)"/></g>
+              <g clip-path="url(#tubeB)"><rect class="t-bg" x="222" y="44" width="46" height="128" fill="#fff"/><rect id="liqB" x="222" y="96" width="46" height="80" fill="#5b82d6"/><rect x="222" y="44" width="46" height="128" fill="url(#gloss)"/></g>
+              <rect x="52" y="44" width="46" height="128" rx="14" fill="none" stroke="#8aa3c7" stroke-width="1.5"/>
+              <rect x="222" y="44" width="46" height="128" rx="14" fill="none" stroke="#8aa3c7" stroke-width="1.5"/>
+              <path id="arcAB" d="M104,80 C140,52 180,52 216,80" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
+              <path id="arcBA" d="M216,124 C180,152 140,152 104,124" class="flow" fill="none" stroke="#3d6fb8" stroke-width="1.6" marker-end="url(#arr)"/>
+              <circle id="dropAB" r="5.5" fill="#eef4fd" stroke="#3d6fb8" stroke-width="1.2" opacity="0"/>
+              <circle id="dropBA" r="5.5" fill="#5b82d6" stroke="#3d6fb8" stroke-width="1.2" opacity="0"/>
+              <text id="vizVsw" class="t-acc" x="160" y="106" text-anchor="middle" font-size="12" fill="#3b6fc4" font-weight="600"></text>
+              <text id="vizVswSub" x="160" y="121" text-anchor="middle" class="t-mut" font-size="10.5" fill="#5d6b7c"></text>
+              <text id="vizA" x="75" y="194" text-anchor="middle" font-size="13" font-weight="650"></text>
+              <text id="vizB" x="245" y="194" text-anchor="middle" font-size="13" font-weight="650"></text>
+              <text x="75" y="210" text-anchor="middle" class="t-mut" font-size="10.5" fill="#5d6b7c">ligand in A</text>
+              <text x="245" y="210" text-anchor="middle" class="t-mut" font-size="10.5" fill="#5d6b7c">ligand in B</text>
             </g>
           </svg>
-          <p style="margin:6px 4px 2px;font-size:12.5px;color:var(--muted)">After each swap, the ligand concentration goes up in A and down in B, while the protein concentration stays the same. Measure both tubes to get two titration points.</p>
+          <p class="viz-caption" id="viz-caption"></p>
+          <div class="viz-controls">
+            <button class="vbtn" id="viz-prev" aria-label="Previous step"><svg viewBox="0 0 20 20"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button class="vbtn play" id="viz-play" aria-label="Play walkthrough"><svg viewBox="0 0 20 20"><path class="i-play" d="M7 4.8v10.4L15.5 10z" fill="currentColor"/><g class="i-pause"><rect x="5.5" y="4.5" width="3" height="11" rx="1" fill="currentColor"/><rect x="11.5" y="4.5" width="3" height="11" rx="1" fill="currentColor"/></g></svg></button>
+            <button class="vbtn" id="viz-next" aria-label="Next step"><svg viewBox="0 0 20 20"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <div class="viz-dots" id="viz-dots"></div>
+          </div>
         </div>
       </div>
       <div>
@@ -497,16 +736,28 @@
     <p class="howto">Enter your measured CSPs. Your data (black circles) are compared with the simulated curves. The curve they sit on gives an approximate K<sub>d</sub>.</p>
     <div class="layout">
       <div>
+        <div class="presets" role="group" aria-label="Load an example">
+          <span class="presets-label">Examples</span>
+          <button class="preset" data-preset="paper"><svg viewBox="0 0 20 20"><path d="M5.5 2.8h6l3 3v11.4h-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 9.5h4.5M8 12.5h4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Paper</button>
+          <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
+          <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
+        </div>
         <div class="error" id="est-error"></div>
         <div class="field">
           <label for="est-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
-          <input type="text" id="est-p" data-default="50">
+          <input type="text" inputmode="decimal" id="est-p" data-default="50">
+          <input type="range" class="slider" data-for="est-p" min="1" max="500" step="1" aria-label="Adjust with a slider">
           <span class="hint">Single value</span>
         </div>
         <div class="field">
           <label for="est-kd">Dissociation constant(s) to compare, K<sub>d</sub> (µM)</label>
           <input type="text" id="est-kd" data-default="0.5, 5, 10, 30, 50, 100, 200">
           <span class="hint">One or more values, comma-separated</span>
+          <div class="explore" data-panel="est">
+            <div class="explore-head"><span>Explore a K<sub>d</sub></span><output class="explore-val">drag to try</output></div>
+            <input type="range" class="slider explore-range" min="-2" max="4" step="0.01" value="1.48" data-log aria-label="Explore a Kd value">
+            <div class="explore-actions" hidden><button class="btn mini" data-explore="add">Add to list</button><button class="btn mini plain" data-explore="hide">Hide</button></div>
+          </div>
         </div>
         <div class="field">
           <label for="est-l">Ligand concentrations of A<sub>0</sub>, A<sub>1</sub>, …, B<sub>0</sub> (µM)</label>
@@ -518,10 +769,9 @@
           <input type="text" id="est-csp" data-default="0, 0.34, 1.0">
           <span class="hint">Same number of values as above, in the same order</span>
         </div>
-        <div class="btns"><button class="btn plain" data-reset="panel-est">Reset to example values</button></div>
       </div>
       <div>
-        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="est-plot" hidden>Reset zoom</button><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
         <div class="out-actions"><button class="btn" id="est-csv">Download data (CSV)</button><button class="btn" id="est-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -536,7 +786,7 @@
       <h3>Typical workflow</h3>
       <ol>
         <li><b>Plan (tab 1).</b> Enter your protein concentration and a few K<sub>d</sub> values you think are plausible. Adjust your ligand concentrations until the circles are spread along the rising part of the curves, not bunched at the flat top.</li>
-        <li><b>Get the pipetting recipe (tab 2).</b> Paste the same ligand concentrations and your sample volume. The table shows how many µL to swap between tubes A and B at each step, and the chips show the order in which to measure the points.</li>
+        <li><b>Get the pipetting recipe (tab 2).</b> Paste the same ligand concentrations and your sample volume. The table shows how many µL to swap between tubes A and B at each step, and the chips show the order in which to measure the points. Press <b>play</b> on the walkthrough (or click a table row) to see each swap animated.</li>
         <li><b>Run the first swap at the bench.</b> Measure A<sub>0</sub>, B<sub>0</sub>, and A<sub>1</sub>.</li>
         <li><b>Estimate K<sub>d</sub> early (tab 3).</b> Enter those concentrations and their CSPs. The curve your black circles sit on gives an approximate K<sub>d</sub>. If it's far from what you planned for, go back to tab 1 and re-plan the remaining points.</li>
       </ol>
@@ -544,10 +794,21 @@
       <h3>Entering values</h3>
       <ul>
         <li>Separate multiple values with commas, e.g. <code>0.5, 5, 50</code>. Scientific notation like <code>1e7</code> works.</li>
+        <li>Press <kbd>Enter</kbd> to jump to the next box (<kbd>Shift</kbd>+<kbd>Enter</kbd> goes back). After the last box, the page moves to the results.</li>
         <li>Concentrations are in µM, volumes in µL, and CSPs in ppm.</li>
         <li>In tabs 2 and 3, put A<sub>0</sub> (lowest ligand) first and B<sub>0</sub> (highest) last.</li>
         <li>If something is wrong, a red message says what to fix and the box is outlined. The results come back as soon as you correct it.</li>
-        <li><b>Reset to example values</b> restores the notebook's example inputs.</li>
+        <li>The <b>sliders</b> under single-value boxes let you drag a value and watch the results change live.</li>
+        <li><b>Explore a K<sub>d</sub></b> (tabs 1 and 3) draws a dashed test curve you can drag. On tab 3, drag it until it passes through your black circles, then click <b>Add to list</b> to keep it.</li>
+        <li><b>Examples</b> (Paper, Tight binder, Weak binder) fill in all three tabs at once. <b>Paper</b> restores the notebook's example inputs.</li>
+      </ul>
+
+      <h3>Reading the plots</h3>
+      <ul>
+        <li>Move the mouse over a plot to read exact values for every K<sub>d</sub> at <b>any</b> concentration. It only clicks onto a titration point when you are right on top of one, and holding <kbd>Alt</kbd> (or <kbd>Shift</kbd>) turns even that off.</li>
+        <li><b>Zoom:</b> scroll on the plot to zoom the x-axis around the cursor, <kbd>Shift</kbd>+scroll to zoom the y-axis, and swipe sideways (two fingers) to pan. <b>Double-click</b> or press <b>Reset zoom</b> to go back. Zooming only changes the view, not your inputs or the exported data.</li>
+        <li>For a precise reading near the origin, click the plot once and use <kbd>←</kbd> <kbd>→</kbd> to step the crosshair (<kbd>Shift</kbd> for 10× steps, <kbd>Alt</kbd> for fine ones, <kbd>Home</kbd>/<kbd>End</kbd> for the ends).</li>
+        <li>Hover a K<sub>d</sub> in the legend to highlight that curve and fade the others (on a touch screen, tap it).</li>
       </ul>
 
       <h3>Saving results</h3>
@@ -555,7 +816,7 @@
         <li><b>Export → PDF report</b> puts all your inputs, both plots, the swapping table and the titration points into one document. In the print window, choose <b>Save as PDF</b>.</li>
         <li><b>Export → All files (ZIP)</b> downloads everything at once: both plots as PNG, the data behind every plot and table as CSV (opens in Excel), and a text file listing your inputs.</li>
         <li>Each tab also has its own buttons: <b>Save plot as PNG</b> (high resolution, white background) and <b>Download data (CSV)</b>.</li>
-        <li>Nothing is saved automatically. Your inputs reset when you close or reload the page.</li>
+        <li>Nothing is saved automatically. Your inputs reset when you close or reload the page. The only thing remembered is your light/dark choice (the ☾/☀ button at the top).</li>
       </ul>
 
       <h3>Good to know</h3>
@@ -712,6 +973,14 @@ function niceTicks(min, max, count = 6) {
   for (let v = lo; v <= hi + step * 1e-6; v += step) ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
   return { lo, hi, ticks, step };
 }
+// Ticks inside an exact range (used when the plot is zoomed)
+function ticksIn(lo, hi, count = 6) {
+  if (!(hi > lo)) return niceTicks(lo, hi, count);
+  const step = niceTicks(lo, hi, count).step, out = [];
+  for (let v = Math.ceil(lo / step - 1e-9) * step; v <= hi + step * 1e-9; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  return { lo, hi, ticks: out, step };
+}
+
 function fmtTick(v, step, big) {
   if (big) {
     if (v === 0) return "0";
@@ -724,11 +993,29 @@ function fmtTick(v, step, big) {
 /*
  * spec = { lines:[{xs, ys, color, label}], markers:[{xs, ys, shape, fill, stroke}], xLabel, yLabel }
  */
-function drawPlot(svg, spec, animate) {
-  const W = 700, legendW = 185;
-  const H = Math.max(450, 90 + spec.lines.length * 27);
+const REDUCED_MOTION = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/*
+ * spec = { lines:[{xs, ys, color, label, kd, fn, dash?}], markers:[{xs, ys, shape, fill, stroke, series?, dataLabel?}],
+ *          xLabel, yLabel, valueName }
+ * When inputs change (animate = false) the plot morphs smoothly from what is on screen to the new result.
+ * When a tab opens (animate = true) the curves draw themselves in.
+ */
+function plotLayout(n) {
+  if (isCompact()) {
+    // phones: narrower canvas so text stays readable, legend in two columns under the plot
+    const W = 440, m = { l: 78, r: 18, t: 18, b: 72 }, ph = 290, cols = 2;
+    const top = m.t + ph + m.b;
+    return { W, H: top + Math.ceil(n / cols) * 26 + 10, m, pw: W - m.l - m.r, ph, legend: { mode: "below", cols, top, colW: (W - 28) / cols } };
+  }
+  const W = 700, legendW = 185, H = Math.max(450, 90 + n * 27);
   const m = { l: 96, r: legendW + 14, t: 20, b: 72 };
-  const pw = W - m.l - m.r, ph = H - m.t - m.b;
+  return { W, H, m, pw: W - m.l - m.r, ph: H - m.t - m.b, legend: { mode: "right" } };
+}
+function isCompact() { return window.innerWidth < 640; }
+
+function drawPlot(svg, spec, animate) {
+  const { W, H, m, pw, ph, legend } = plotLayout(spec.lines.length);
 
   let xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
   const acc = (xs, ys) => {
@@ -744,76 +1031,171 @@ function drawPlot(svg, spec, animate) {
   ymin = Math.min(ymin, 0);
   xmin = Math.min(xmin, 0);
 
-  const xt = niceTicks(xmin, xmax), yt = niceTicks(ymin, ymax);
+  const full = { x: niceTicks(xmin, xmax), y: niceTicks(ymin, ymax) };
+  svg._full = { xd: [full.x.lo, full.x.hi], yd: [full.y.lo, full.y.hi] };
+  svg._fullTicks = full;
+  const v = clampView(svg);
+  const xt = v ? ticksIn(v.xd[0], v.xd[1]) : full.x;
+  const yt = v ? ticksIn(v.yd[0], v.yd[1]) : full.y;
+  const zr = svg.parentElement.querySelector(".zoom-reset");
+  if (zr) zr.hidden = !v;
   const X = (x) => m.l + ((x - xt.lo) / (xt.hi - xt.lo)) * pw;
   const Y = (y) => m.t + ph - ((y - yt.lo) / (yt.hi - yt.lo)) * ph;
+  const geo = { W, H, m, pw, ph, xt, yt, X, Y, spec, legend };
+  const target = {
+    xd: [xt.lo, xt.hi], yd: [yt.lo, yt.hi],
+    lines: spec.lines.map((l) => ({ xs: l.xs, ys: l.ys })),
+    markers: spec.markers.map((mk) => ({ xs: mk.xs, ys: mk.ys })),
+  };
+
+  svg._geo = geo;
+  hideHover(svg);
+  cancelAnimationFrame(svg._raf);
+  clearTimeout(svg._drawTimer);
+
+  const from = svg._shown;
+  if (animate || !from || REDUCED_MOTION || from.H !== H) {
+    paintPlot(svg, geo, target);
+    if (animate) {
+      replay(svg, "draw");
+      svg._drawTimer = setTimeout(() => svg.classList.remove("draw"), 3800);
+    } else {
+      svg.classList.remove("draw");
+    }
+    return;
+  }
+  svg.classList.remove("draw");
+  const t0 = performance.now(), dur = 520;
+  const frame = (now) => {
+    const t = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - t, 3);
+    paintPlot(svg, geo, t < 1 ? mixPlot(from, target, e) : target);
+    if (t < 1) svg._raf = requestAnimationFrame(frame);
+  };
+  svg._raf = requestAnimationFrame(frame);
+}
+
+// Keep a zoomed view inside the data, and drop it when it covers everything again
+function clampView(svg) {
+  const v = svg._view, f = svg._full;
+  if (!v || !f) return null;
+  const fit = (view, fullRange) => {
+    const span = Math.min(view[1] - view[0], fullRange[1] - fullRange[0]);
+    let lo = Math.max(fullRange[0], Math.min(view[0], fullRange[1] - span));
+    return [lo, lo + span];
+  };
+  const xd = fit(v.xd, f.xd), yd = fit(v.yd, f.yd);
+  const same = (a, b) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
+  if (same(xd, f.xd) && same(yd, f.yd)) { svg._view = null; return null; }
+  svg._view = { xd, yd };
+  return svg._view;
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+function mixSeries(from, to, t) {
+  return to.map((s, i) => {
+    const f = from[i];
+    if (!f || f.xs.length !== s.xs.length) return s;
+    return {
+      xs: s.xs.map((x, j) => (isFinite(f.xs[j]) ? lerp(f.xs[j], x, t) : x)),
+      ys: s.ys.map((y, j) => (isFinite(f.ys[j]) && isFinite(y) ? lerp(f.ys[j], y, t) : y)),
+    };
+  });
+}
+function mixPlot(from, to, t) {
+  return {
+    xd: [lerp(from.xd[0], to.xd[0], t), lerp(from.xd[1], to.xd[1], t)],
+    yd: [lerp(from.yd[0], to.yd[0], t), lerp(from.yd[1], to.yd[1], t)],
+    lines: mixSeries(from.lines, to.lines, t),
+    markers: mixSeries(from.markers, to.markers, t),
+  };
+}
+
+function paintPlot(svg, geo, st) {
+  const { W, H, m, pw, ph, xt, yt, spec, legend } = geo;
+  const X = (x) => m.l + ((x - st.xd[0]) / (st.xd[1] - st.xd[0])) * pw;
+  const Y = (y) => m.t + ph - ((y - st.yd[0]) / (st.yd[1] - st.yd[0])) * ph;
+  const within = (v, d, step) => v >= d[0] - step * 1e-6 && v <= d[1] + step * 1e-6;
   const yBig = Math.max(Math.abs(yt.lo), Math.abs(yt.hi)) >= 1e5 ? Math.max(Math.abs(yt.lo), Math.abs(yt.hi)) : 0;
+  const focus = svg._focus;
+  const on = (i) => (focus === i ? " on" : "");
 
   const o = [];
-  o.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`);
-  // grid + ticks
-  xt.ticks.forEach((v) => {
+  o.push(`<rect class="p-bg" x="0" y="0" width="${W}" height="${H}" fill="#ffffff"/>`);
+  xt.ticks.filter((v) => within(v, st.xd, xt.step)).forEach((v) => {
     const x = X(v).toFixed(2);
-    o.push(`<line x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t + ph}" stroke="#eef1f5"/>`);
-    o.push(`<line x1="${x}" x2="${x}" y1="${m.t + ph}" y2="${m.t + ph + 5}" stroke="#4b5563"/>`);
-    o.push(`<text x="${x}" y="${m.t + ph + 25}" text-anchor="middle" font-size="16" fill="#4b5563">${fmtTick(v, xt.step, 0)}</text>`);
+    o.push(`<line class="p-grid" x1="${x}" x2="${x}" y1="${m.t}" y2="${m.t + ph}" stroke="#eef1f5"/>`);
+    o.push(`<line class="p-ax" x1="${x}" x2="${x}" y1="${m.t + ph}" y2="${m.t + ph + 5}" stroke="#4b5563"/>`);
+    o.push(`<text class="p-tick" x="${x}" y="${m.t + ph + 25}" text-anchor="middle" font-size="16" fill="#4b5563">${fmtTick(v, xt.step, 0)}</text>`);
   });
-  yt.ticks.forEach((v) => {
+  yt.ticks.filter((v) => within(v, st.yd, yt.step)).forEach((v) => {
     const y = Y(v).toFixed(2);
-    o.push(`<line x1="${m.l}" x2="${m.l + pw}" y1="${y}" y2="${y}" stroke="#eef1f5"/>`);
-    o.push(`<line x1="${m.l - 5}" x2="${m.l}" y1="${y}" y2="${y}" stroke="#4b5563"/>`);
-    o.push(`<text x="${m.l - 9}" y="${y}" dy="6" text-anchor="end" font-size="16" fill="#4b5563">${fmtTick(v, yt.step, yBig)}</text>`);
+    o.push(`<line class="p-grid" x1="${m.l}" x2="${m.l + pw}" y1="${y}" y2="${y}" stroke="#eef1f5"/>`);
+    o.push(`<line class="p-ax" x1="${m.l - 5}" x2="${m.l}" y1="${y}" y2="${y}" stroke="#4b5563"/>`);
+    o.push(`<text class="p-tick" x="${m.l - 9}" y="${y}" dy="6" text-anchor="end" font-size="16" fill="#4b5563">${fmtTick(v, yt.step, yBig)}</text>`);
   });
-  o.push(`<rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="none" stroke="#4b5563"/>`);
-  // axis labels
-  o.push(`<text x="${m.l + pw / 2}" y="${H - 14}" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.xLabel}</text>`);
-  o.push(`<text transform="translate(24 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.yLabel}</text>`);
+  o.push(`<rect class="p-ax" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="none" stroke="#4b5563"/>`);
+  o.push(`<text class="p-txt" x="${m.l + pw / 2}" y="${m.t + ph + 58}" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.xLabel}</text>`);
+  o.push(`<text class="p-txt" transform="translate(24 ${m.t + ph / 2}) rotate(-90)" text-anchor="middle" font-size="18" fill="#1f2a37">${spec.yLabel}</text>`);
 
-  // clip to plotting area
   o.push(`<defs><clipPath id="clip-${svg.id}"><rect x="${m.l}" y="${m.t}" width="${pw}" height="${ph}"/></clipPath></defs>`);
   o.push(`<g clip-path="url(#clip-${svg.id})">`);
   spec.lines.forEach((s, li) => {
-    const d = s.xs.map((x, i) => (isFinite(s.ys[i]) ? `${X(x).toFixed(2)},${Y(s.ys[i]).toFixed(2)}` : null))
+    const pts = st.lines[li];
+    const d = pts.xs.map((x, i) => (isFinite(pts.ys[i]) ? `${X(x).toFixed(2)},${Y(pts.ys[i]).toFixed(2)}` : null))
       .filter(Boolean).join(" L");
-    if (d) o.push(`<path class="ln" pathLength="1" style="animation-delay:${(li * 0.12).toFixed(2)}s" d="M${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`);
+    if (!d) return;
+    if (s.dash) {
+      o.push(`<path class="dl p-exp${on(li)}" data-i="${li}" d="M${d}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-dasharray="7 5" stroke-linecap="round"/>`);
+    } else {
+      o.push(`<path class="ln${on(li)}" data-i="${li}" pathLength="1" style="animation-delay:${(li * 0.12).toFixed(2)}s" d="M${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round"/>`);
+    }
   });
   o.push(`</g>`);
   spec.markers.forEach((s, mi) => {
+    const pts = st.markers[mi];
     const md = `style="animation-delay:${(0.9 + mi * 0.08).toFixed(2)}s"`;
-    s.xs.forEach((x, i) => {
-      const y = s.ys[i];
+    const di = s.series != null ? ` data-i="${s.series}"` : "";
+    const cls = "mk" + (s.fill === "#ffffff" ? (s.shape === "tri" ? " p-hollow" : " p-dot") : "") + (s.series != null ? on(s.series) : "");
+    pts.xs.forEach((x, i) => {
+      const y = pts.ys[i];
       if (!isFinite(x) || !isFinite(y)) return;
       const cx = X(x), cy = Y(y);
+      if (cx < m.l - 6 || cx > m.l + pw + 6 || cy < m.t - 6 || cy > m.t + ph + 6) return;
       if (s.shape === "tri") {
         const r = 5.5;
-        o.push(`<polygon class="mk" ${md} points="${cx},${cy - r} ${cx - r * 0.95},${cy + r * 0.6} ${cx + r * 0.95},${cy + r * 0.6}" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.4"/>`);
+        o.push(`<polygon class="${cls}"${di} ${md} points="${cx},${cy - r} ${cx - r * 0.95},${cy + r * 0.6} ${cx + r * 0.95},${cy + r * 0.6}" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.4"/>`);
       } else {
-        o.push(`<circle class="mk" ${md} cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="4.5" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.3"/>`);
+        o.push(`<circle class="${cls}"${di} ${md} cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="4.5" fill="${s.fill}" stroke="${s.stroke}" stroke-width="1.3"/>`);
       }
     });
   });
-  // legend
-  const lx = m.l + pw + 18;
-  const ly = m.t + ph / 2 - (spec.lines.length * 27) / 2;
+  // legend (hover an entry to highlight its curve)
   spec.lines.forEach((s, i) => {
-    const y = ly + i * 27 + 13;
-    o.push(`<g class="lg" style="animation-delay:${(0.3 + i * 0.1).toFixed(2)}s">`);
-    o.push(`<line x1="${lx}" x2="${lx + 22}" y1="${y}" y2="${y}" stroke="${s.color}" stroke-width="2.5"/>`);
-    o.push(`<text x="${lx + 30}" y="${y}" dy="6" font-size="17" fill="#1f2a37">${s.label}</text></g>`);
+    let lx, y, hw;
+    if (legend.mode === "below") {
+      lx = 22 + (i % legend.cols) * legend.colW; y = legend.top + Math.floor(i / legend.cols) * 26 + 13; hw = legend.colW - 6;
+    } else {
+      lx = m.l + pw + 18; y = m.t + ph / 2 - (spec.lines.length * 27) / 2 + i * 27 + 13; hw = W - lx;
+    }
+    o.push(`<g class="lg${on(i)}" data-i="${i}" style="animation-delay:${(0.3 + i * 0.1).toFixed(2)}s">`);
+    o.push(`<rect class="hit" x="${lx - 8}" y="${y - 13}" width="${hw}" height="26" rx="8" fill="transparent"/>`);
+    o.push(`<line${s.dash ? ' class="p-exp"' : ""} x1="${lx}" x2="${lx + 22}" y1="${y}" y2="${y}" stroke="${s.color}" stroke-width="2.5"${s.dash ? ' stroke-dasharray="5 4"' : ""}/>`);
+    o.push(`<text class="p-txt" x="${lx + 30}" y="${y}" dy="6" font-size="17" fill="#1f2a37">${s.label}</text></g>`);
   });
 
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("font-family", FONT);
   svg.innerHTML = o.join("");
-  svg._geo = { W, m, pw, ph, xt, yt, X, Y, spec };
-  hideHover(svg);
-  clearTimeout(svg._drawTimer);
-  if (animate) {
-    replay(svg, "draw");
-    svg._drawTimer = setTimeout(() => svg.classList.remove("draw"), 3800);
-  } else {
-    svg.classList.remove("draw");
-  }
+  svg._shown = { xd: st.xd, yd: st.yd, lines: st.lines, markers: st.markers, H };
+}
+
+// Highlight one curve (legend hover); null = show all
+function setFocus(svg, i) {
+  if (svg._focus === i) return;
+  svg._focus = i;
+  svg.classList.toggle("focus", i != null);
+  svg.querySelectorAll("[data-i]").forEach((el) => el.classList.toggle("on", i != null && +el.dataset.i === i));
 }
 
 // Restart a CSS animation class
@@ -926,10 +1308,16 @@ function updateSim(animate) {
       xs, ys: xs.map((L) => tf(fractionBound(L, P, kd))), color: colors[j], label: kdLabel(kd),
       kd, fn: (L) => tf(fractionBound(L, P, kd)),
     }));
-    const markers = kds.map((kd) => ({
-      xs: Ls, ys: Ls.map((L) => tf(fractionBound(L, P, kd))), shape: "circle", fill: "#ffffff", stroke: "#111111",
+    const markers = kds.map((kd, j) => ({
+      xs: Ls, ys: Ls.map((L) => tf(fractionBound(L, P, kd))), shape: "circle", fill: "#ffffff", stroke: "#111111", series: j,
     }));
-    drawPlot($("#sim-plot"), { lines, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type], valueName: TIP_NAMES[type] }, animate);
+    const shown = lines.slice();
+    if (explore.sim != null) {
+      const kd = explore.sim;
+      shown.push({ xs, ys: xs.map((L) => tf(fractionBound(L, P, kd))), color: "#1f2a37", label: kdLabel(kd), kd, dash: true,
+        fn: (L) => tf(fractionBound(L, P, kd)) });
+    }
+    drawPlot($("#sim-plot"), { lines: shown, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type], valueName: TIP_NAMES[type] }, animate);
     lastSim = { P, Lmax, kds, Ls, type, factor, xs, curves: lines.map((l) => l.ys), points: markers.map((m) => m.ys) };
     showError("#sim-error", "");
   } catch (e) {
@@ -952,15 +1340,19 @@ function updateSwap(animate) {
     if (V <= 0) flag("#swap-v", "Total sample volume must be greater than 0.");
 
     const r = swappingVolumes(conc, V);
+    const prev = lastSwap;
     lastSwap = Object.assign(r, { conc, V });
     let html = "<thead><tr><th>Step</th><th>V<sub>sw</sub> (µL)</th><th>A (µM)</th><th>B (µM)</th><th>New points</th></tr></thead><tbody>";
     r.VSW.forEach((v, i) => {
-      html += `<tr style="animation-delay:${(i * 0.08).toFixed(3)}s"><td>${i}</td><td>${fmtCell(v)}</td><td>${fmtCell(r.A[i])}</td><td>${fmtCell(r.B[i])}</td><td>${r.rowPoints[i].join(", ")}</td></tr>`;
+      html += `<tr data-step="${i}" style="animation-delay:${(i * 0.08).toFixed(3)}s"><td>${i}</td><td>${fmtCell(v)}</td><td>${fmtCell(r.A[i])}</td><td>${fmtCell(r.B[i])}</td><td>${r.rowPoints[i].join(", ")}</td></tr>`;
     });
     $("#swap-table").innerHTML = html + "</tbody>";
-    $("#swap-points").innerHTML = r.points.map((p, i) => `<span class="chip" style="animation-delay:${(0.4 + i * 0.06).toFixed(3)}s">${p[0]}<sub>${p.slice(1)}</sub></span>`).join("");
+    $("#swap-points").innerHTML = r.points.map((p, i) => `<span class="chip" data-pt="${p}" style="animation-delay:${(0.4 + i * 0.06).toFixed(3)}s">${p[0]}<sub>${p.slice(1)}</sub></span>`).join("");
     if (animate) { replay($(".tablewrap"), "anim-rows"); replay($("#swap-points"), "anim-chips"); }
-    else { $(".tablewrap").classList.remove("anim-rows"); $("#swap-points").classList.remove("anim-chips"); }
+    else {
+      $(".tablewrap").classList.remove("anim-rows"); $("#swap-points").classList.remove("anim-chips");
+      if (prev) highlightSwapChanges(prev, r);
+    }
     const unsorted = conc.some((c, i) => i > 0 && c < conc[i - 1]);
     showError("#swap-error", unsorted ? "Note: the concentrations are not in increasing order, so the scheme may not make sense." : "");
     $("#swap-csv").disabled = $("#swap-pts-csv").disabled = false;
@@ -971,7 +1363,143 @@ function updateSwap(animate) {
     $("#swap-csv").disabled = $("#swap-pts-csv").disabled = true;
     showError("#swap-error", String(e));
   }
+  if (typeof viz !== "undefined") viz.sync();
 }
+
+// While typing: changed numbers glow and count to their new value; new rows and chips slide in
+function highlightSwapChanges(prev, r) {
+  const rows = $("#swap-table").querySelectorAll("tbody tr");
+  const cols = [prev.VSW, prev.A, prev.B], now = [r.VSW, r.A, r.B];
+  rows.forEach((tr, i) => {
+    if (i >= prev.VSW.length) { tr.classList.add("newrow"); return; }
+    const tds = tr.children;
+    now.forEach((col, c) => {
+      const a = cols[c][i], b = col[i];
+      if (isFinite(a) && isFinite(b) && Math.abs(a - b) > 1e-9 * Math.max(1, Math.abs(b))) countTo(tds[c + 1], a, b);
+    });
+    if (prev.rowPoints[i] && prev.rowPoints[i].join() !== r.rowPoints[i].join()) tds[4].classList.add("chg");
+  });
+  $("#swap-points").querySelectorAll(".chip").forEach((chip, i) => {
+    if (prev.points[i] !== r.points[i]) chip.classList.add("pop");
+  });
+}
+function countTo(td, from, to) {
+  td.classList.add("chg");
+  if (REDUCED_MOTION) return;
+  const t0 = performance.now(), dur = 650;
+  const step = (now) => {
+    if (!td.isConnected) return;
+    const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+    td.textContent = fmtCell(t < 1 ? lerp(from, to, e) : to);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ================= Swap walkthrough ================= */
+
+const viz = (() => {
+  const pal = () => (isDark() ? [[40, 52, 82], [128, 162, 240]] : [[238, 244, 253], [91, 130, 214]]);
+  const LIQ_TOP = 96, LIQ_H = 80;
+  let step = 0, playing = false, timer = null, raf = null;
+  const shown = { a: 0, b: 1, ca: 0, cb: 0 };   // colour fractions + concentrations on screen
+
+  const color = (f) => { const [C0, C1] = pal(); return `rgb(${C0.map((c, i) => Math.round(lerp(c, C1[i], Math.min(1, Math.max(0, f))))).join(",")})`; };
+  const frac = (c) => { const lo = lastSwap.A[0], hi = lastSwap.B[0]; return hi !== lo ? (c - lo) / (hi - lo) : 0; };
+  const bez = (p0, p1, p2, p3, t) => {
+    const u = 1 - t;
+    return [0, 1].map((k) => u * u * u * p0[k] + 3 * u * u * t * p1[k] + 3 * u * t * t * p2[k] + t * t * t * p3[k]);
+  };
+  const AB = [[104, 80], [140, 52], [180, 52], [216, 80]], BA = [[216, 124], [180, 152], [140, 152], [104, 124]];
+
+  function paint(st, dip = 0, drop = -1) {
+    $("#liqA").setAttribute("fill", color(st.a)); $("#liqB").setAttribute("fill", color(st.b));
+    const top = LIQ_TOP + dip * LIQ_H;
+    ["#liqA", "#liqB"].forEach((id) => { $(id).setAttribute("y", top.toFixed(1)); $(id).setAttribute("height", (LIQ_H + 2 - dip * LIQ_H).toFixed(1)); });
+    $("#vizA").textContent = fmtCell(st.ca) + " µM";
+    $("#vizB").textContent = fmtCell(st.cb) + " µM";
+    const dAB = $("#dropAB"), dBA = $("#dropBA");
+    if (drop < 0 || drop > 1) { dAB.setAttribute("opacity", 0); dBA.setAttribute("opacity", 0); return; }
+    const o = Math.min(1, Math.sin(Math.PI * drop) * 1.6).toFixed(2);
+    const [x1, y1] = bez(...AB, drop), [x2, y2] = bez(...BA, drop);
+    dAB.setAttribute("cx", x1); dAB.setAttribute("cy", y1); dAB.setAttribute("opacity", o); dAB.setAttribute("fill", color(st.a0));
+    dBA.setAttribute("cx", x2); dBA.setAttribute("cy", y2); dBA.setAttribute("opacity", o); dBA.setAttribute("fill", color(st.b0));
+  }
+  function target(i) {
+    const r = lastSwap;
+    return { a: frac(r.A[i]), b: frac(r.B[i]), ca: r.A[i], cb: r.B[i] };
+  }
+  function labels() {
+    const r = lastSwap, n = r.VSW.length, pts = r.rowPoints[step].map((p) => `${p[0]}<sub>${p.slice(1)}</sub>`).join(" and ");
+    $("#vizVsw").textContent = step === 0 ? "prepare" : `swap ${fmtCell(r.VSW[step])} µL`;
+    $("#vizVswSub").textContent = step === 0 ? "A₀ and B₀" : `of ${fmtCell(r.V)} µL each`;
+    $("#viz-caption").innerHTML = step === 0
+      ? `<b>Start</b> · Prepare A<sub>0</sub> (${fmtCell(r.A[0])} µM ligand) and B<sub>0</sub> (${fmtCell(r.B[0])} µM), same protein concentration. Measure both.`
+      : `<b>Step ${step} of ${n - 1}</b> · Swap <b>${fmtCell(r.VSW[step])} µL</b> between A and B, mix, then measure ${pts}.`;
+    $("#viz-dots").innerHTML = r.VSW.map((_, i) => `<button class="vdot${i === step ? " on" : ""}${i < step ? " done" : ""}" data-i="${i}" aria-label="Go to step ${i}"></button>`).join("");
+    $("#viz-prev").disabled = step === 0;
+    $("#viz-next").disabled = step === n - 1;
+    document.querySelectorAll("#swap-table tbody tr").forEach((tr) => tr.classList.toggle("cur", +tr.dataset.step === step));
+    const now = new Set(r.rowPoints[step]);
+    document.querySelectorAll("#swap-points .chip").forEach((c) => c.classList.toggle("cur", now.has(c.dataset.pt)));
+  }
+  function go(i, animated) {
+    if (!lastSwap) return;
+    const n = lastSwap.VSW.length;
+    i = Math.max(0, Math.min(n - 1, i));
+    cancelAnimationFrame(raf);
+    const from = { ...shown }, to = target(i), forward = i === step + 1;
+    step = i;
+    labels();
+    if (!animated || REDUCED_MOTION) { Object.assign(shown, to); paint(shown); return; }
+    const t0 = performance.now(), dur = forward ? 1500 : 500;
+    const dipAmt = forward ? Math.min(0.45, lastSwap.VSW[i] / lastSwap.V) : 0;
+    const frame = (now) => {
+      const t = Math.min(1, (now - t0) / dur);
+      const mixT = forward ? Math.min(1, Math.max(0, (t - 0.4) / 0.55)) : t;
+      const e = mixT < 0.5 ? 2 * mixT * mixT : 1 - Math.pow(-2 * mixT + 2, 2) / 2;
+      const st = { a: lerp(from.a, to.a, e), b: lerp(from.b, to.b, e), ca: lerp(from.ca, to.ca, e), cb: lerp(from.cb, to.cb, e), a0: from.a, b0: from.b };
+      const dip = forward ? Math.sin(Math.PI * Math.min(1, t / 0.75)) * dipAmt : 0;
+      paint(st, dip, forward ? Math.min(1.01, t / 0.6) : -1);
+      Object.assign(shown, { a: st.a, b: st.b, ca: st.ca, cb: st.cb });
+      if (t < 1) raf = requestAnimationFrame(frame); else { Object.assign(shown, to); paint(shown); }
+    };
+    raf = requestAnimationFrame(frame);
+  }
+  function setPlaying(on) {
+    playing = on;
+    clearTimeout(timer);
+    $("#swap-viz").classList.toggle("playing", on);
+    $("#viz-play").setAttribute("aria-label", on ? "Pause walkthrough" : "Play walkthrough");
+    if (!on || !lastSwap) return;
+    if (step >= lastSwap.VSW.length - 1) go(0, true);
+    const tick = () => {
+      if (!playing) return;
+      if (step >= lastSwap.VSW.length - 1) return setPlaying(false);
+      go(step + 1, true);
+      timer = setTimeout(tick, 2300);
+    };
+    timer = setTimeout(tick, step === 0 ? 900 : 300);
+  }
+  $("#viz-play").addEventListener("click", () => setPlaying(!playing));
+  $("#viz-next").addEventListener("click", () => { setPlaying(false); go(step + 1, true); });
+  $("#viz-prev").addEventListener("click", () => { setPlaying(false); go(step - 1, true); });
+  $("#viz-dots").addEventListener("click", (e) => { const b = e.target.closest(".vdot"); if (b) { setPlaying(false); go(+b.dataset.i, true); } });
+  $("#swap-table").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-step]"); if (tr) { setPlaying(false); go(+tr.dataset.step, true); } });
+
+  return {
+    repaint() { if (lastSwap) paint(shown); },
+    // called whenever the swapping scheme is recomputed
+    sync() {
+      const ok = !!lastSwap;
+      $("#swap-viz").classList.toggle("disabled", !ok);
+      ["#viz-prev", "#viz-next", "#viz-play"].forEach((id) => ($(id).disabled = !ok));
+      if (!ok) { setPlaying(false); $("#viz-caption").textContent = "Fix the inputs above to see the walkthrough."; return; }
+      setPlaying(false);
+      go(Math.min(step, lastSwap.VSW.length - 1), false);
+    },
+  };
+})();
 
 /* ================= Tab 3: estimate Kd ================= */
 
@@ -1001,11 +1529,17 @@ function updateEst(animate) {
       lines.push({ xs, ys: f.map((v) => v / fEnd), color: colors[j], label: kdLabel(kd), kd, fn: (L) => fractionBound(L, P, kd) / fEnd });
       const ft = conc.map((L) => fractionBound(L, P, kd));
       const ftEnd = ft[ft.length - 1];
-      markers.push({ xs: conc, ys: ft.map((v) => v / ftEnd), shape: "tri", fill: "#ffffff", stroke: colors[j] });
+      markers.push({ xs: conc, ys: ft.map((v) => v / ftEnd), shape: "tri", fill: "#ffffff", stroke: colors[j], series: j });
     });
     markers.push({ xs: conc, ys: csp.map((c) => c / lastCsp), shape: "circle", fill: "#ffffff", stroke: "#111111", dataLabel: "Your data" });
+    const shown = lines.slice();
+    if (explore.est != null) {
+      const kd = explore.est, fEnd = fractionBound(lastL, P, kd);
+      shown.push({ xs, ys: xs.map((L) => fractionBound(L, P, kd) / fEnd), color: "#1f2a37", label: kdLabel(kd), kd, dash: true,
+        fn: (L) => fractionBound(L, P, kd) / fEnd });
+    }
     drawPlot($("#est-plot"), {
-      lines, markers, xLabel: X_LABEL,
+      lines: shown, markers, xLabel: X_LABEL,
       yLabel: `CSP${sub("i")}${unsub(" / CSP")}${sub("B0")}`,
       valueName: "CSP<sub>i</sub> / CSP<sub>B0</sub>",
     }, animate);
@@ -1017,6 +1551,79 @@ function updateEst(animate) {
     showError("#est-error", String(e));
   }
 }
+
+/* ================= Sliders ================= */
+
+const explore = { sim: null, est: null };   // K_d being explored with the slider (µM), or null
+
+function sliderValue(sl) {
+  const v = +sl.value;
+  return sl.hasAttribute("data-log") ? Number(Math.pow(10, v).toPrecision(3)) : Number(v.toFixed(4));
+}
+function paintSlider(sl) {
+  const p = ((+sl.value - +sl.min) / (+sl.max - +sl.min)) * 100;
+  sl.style.setProperty("--p", Math.min(100, Math.max(0, p)) + "%");
+}
+function syncSlider(sl) {
+  const vals = $("#" + sl.dataset.for).value.split(",").map((x) => x.trim()).filter(Boolean);
+  const v = Number(vals[0]);
+  if (vals.length !== 1 || !isFinite(v)) return;
+  if (sl.hasAttribute("data-log")) { if (v > 0) sl.value = Math.log10(v); } else sl.value = v;
+  paintSlider(sl);
+}
+function syncAllSliders() { document.querySelectorAll(".slider[data-for]").forEach(syncSlider); }
+
+document.querySelectorAll(".slider[data-for]").forEach((sl) => {
+  const text = $("#" + sl.dataset.for), panel = sl.closest(".panel");
+  sl.addEventListener("input", (e) => {
+    e.stopPropagation();
+    text.value = String(sliderValue(sl));
+    paintSlider(sl);
+    clearPresetMark();
+    updaters[panel.id](false);
+  });
+  text.addEventListener("input", () => syncSlider(sl));
+});
+
+document.querySelectorAll(".explore").forEach((box) => {
+  const key = box.dataset.panel, sl = box.querySelector(".explore-range"), out = box.querySelector(".explore-val");
+  const listId = key === "sim" ? "#sim-kd" : "#est-kd", update = key === "sim" ? updateSim : updateEst;
+  const show = (on) => {
+    box.classList.toggle("active", on);
+    box.querySelector(".explore-actions").hidden = !on;
+    if (!on) out.textContent = "drag to try";
+  };
+  paintSlider(sl);
+  sl.addEventListener("input", (e) => {
+    e.stopPropagation();
+    explore[key] = sliderValue(sl);
+    out.textContent = explore[key] + " µM";
+    paintSlider(sl);
+    show(true);
+    update(false);
+  });
+  box.querySelector('[data-explore="add"]').addEventListener("click", () => {
+    const kd = explore[key];
+    if (kd == null) return;
+    const list = $(listId).value.split(",").map((x) => x.trim()).filter(Boolean);
+    if (!list.map(Number).includes(kd)) list.push(String(kd));
+    list.sort((a, b) => Number(a) - Number(b));
+    $(listId).value = list.join(", ");
+    explore[key] = null; show(false);
+    update(false);
+    toast(`Added Kd ${kd} µM to the list.`);
+  });
+  box.querySelector('[data-explore="hide"]').addEventListener("click", () => { explore[key] = null; show(false); update(false); });
+});
+function clearExplore() {
+  explore.sim = explore.est = null;
+  document.querySelectorAll(".explore").forEach((box) => {
+    box.classList.remove("active");
+    box.querySelector(".explore-actions").hidden = true;
+    box.querySelector(".explore-val").textContent = "drag to try";
+  });
+}
+function clearPresetMark() { document.querySelectorAll(".preset.active").forEach((b) => b.classList.remove("active")); }
 
 /* ================= Wiring ================= */
 
@@ -1047,24 +1654,92 @@ $("#sim-type").addEventListener("change", () => {
   updateSim(true);
 });
 window.addEventListener("resize", placeIndicators);
+let wasCompact = isCompact();
+window.addEventListener("resize", debounce(() => {
+  if (isCompact() === wasCompact) return;
+  wasCompact = isCompact();
+  $("#sim-plot")._shown = $("#est-plot")._shown = null;
+  updateSim(false); updateEst(false);
+}, 150));
 
 function debounce(fn, ms) { let h; return () => { clearTimeout(h); h = setTimeout(fn, ms); }; }
 Object.entries(updaters).forEach(([panelId, fn]) => {
   const panel = document.getElementById(panelId);
-  panel.addEventListener("input", debounce(() => fn(false), 200));
+  const run = debounce(() => fn(false), 200);
+  panel.addEventListener("input", (e) => { if (e.target.matches('input[type="text"]')) clearPresetMark(); run(); });
   panel.addEventListener("change", (e) => { if (e.target.type !== "radio") fn(false); });
 });
 
 document.querySelectorAll("input[data-default]").forEach((el) => (el.value = el.dataset.default));
-document.querySelectorAll("[data-reset]").forEach((b) => b.addEventListener("click", () => {
-  const panel = document.getElementById(b.dataset.reset);
-  panel.querySelectorAll("input[data-default]").forEach((el) => (el.value = el.dataset.default));
-  if (b.dataset.reset === "panel-sim") {
-    document.querySelector('input[name="simtype"][value="pb"]').checked = true;
-    slideTo($(".seg-ind"), $('input[name="simtype"]:checked').closest("label"));
+syncAllSliders();
+/* ================= Enter moves to the next box ================= */
+
+function visibleFields(panel) {
+  return [...panel.querySelectorAll('input[type="text"]')].filter((el) => el.offsetParent !== null);
+}
+document.querySelectorAll(".panel").forEach((panel) => {
+  // phone keyboards show "Next" / "Done"
+  panel.addEventListener("focusin", (e) => {
+    if (!e.target.matches('input[type="text"]')) return;
+    const f = visibleFields(panel);
+    f.forEach((el, i) => el.setAttribute("enterkeyhint", i === f.length - 1 ? "done" : "next"));
+  });
+  panel.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.isComposing || !e.target.matches('input[type="text"]')) return;
+    e.preventDefault();
+    if (updaters[panel.id]) updaters[panel.id](false);          // update now instead of waiting for the typing pause
+    const f = visibleFields(panel), i = f.indexOf(e.target);
+    const next = f[i + (e.shiftKey ? -1 : 1)];
+    if (next) {
+      next.focus();
+      if (next.value.includes(",")) next.setSelectionRange(next.value.length, next.value.length);   // lists: cursor at the end
+      else next.select();                                                                            // single values: ready to overwrite
+      next.classList.remove("arrive"); void next.offsetWidth; next.classList.add("arrive");
+      return;
+    }
+    if (e.shiftKey) return;
+    e.target.blur();
+    const out = panel.querySelector(".plotbox, .tablewrap");
+    if (out) {
+      out.scrollIntoView({ behavior: REDUCED_MOTION ? "auto" : "smooth", block: "center" });
+      out.classList.remove("pulse"); void out.offsetWidth; out.classList.add("pulse");
+    }
+  });
+});
+
+/* ================= Example presets (fill all three tabs consistently) ================= */
+
+const PRESETS = {
+  paper: { name: "Paper example", P: 50, Lmax: 900, kds: "0.5, 5, 10, 30, 50, 100, 200",
+    L: [0, 30, 55, 90, 140, 210, 290, 420, 600, 890], V: 500, estL: "0, 30, 890", csp: "0, 0.34, 1.0" },
+  tight: { name: "Tight binder", P: 50, Lmax: 200, kds: "0.1, 0.5, 1, 2, 5",
+    L: [0, 10, 20, 30, 40, 50, 60, 75, 100, 150], V: 500, trueKd: 1, cspMax: 0.25 },
+  weak: { name: "Weak binder", P: 50, Lmax: 5000, kds: "100, 300, 1000, 3000",
+    L: [0, 100, 250, 500, 800, 1200, 1800, 2500, 3500, 5000], V: 500, trueKd: 500, cspMax: 0.25 },
+};
+function applyPreset(key) {
+  const pr = PRESETS[key];
+  const set = (id, v) => ($(id).value = String(v));
+  set("#sim-p", pr.P); set("#sim-lmax", pr.Lmax); set("#sim-kd", pr.kds); set("#sim-l", pr.L.join(", "));
+  set("#swap-l", pr.L.join(", ")); set("#swap-v", pr.V);
+  set("#est-p", pr.P); set("#est-kd", pr.kds);
+  if (pr.csp) { set("#est-l", pr.estL); set("#est-csp", pr.csp); }
+  else {
+    // A0, A1 and B0 of the planned series, with CSPs a binder of K_d = trueKd would give
+    const pts = [pr.L[0], pr.L[1], pr.L[pr.L.length - 1]];
+    const fB0 = fractionBound(pts[2], pr.P, pr.trueKd);
+    set("#est-l", pts.join(", "));
+    set("#est-csp", pts.map((L) => Number((pr.cspMax * fractionBound(L, pr.P, pr.trueKd) / fB0).toFixed(3))).join(", "));
   }
-  updaters[b.dataset.reset](true);
-}));
+  clearExplore();
+  syncAllSliders();
+  document.querySelectorAll(".preset").forEach((b) => b.classList.toggle("active", b.dataset.preset === key));
+  updateSim(false); updateSwap(false); updateEst(false);
+  toast(`Loaded “${pr.name}” into all tabs.`);
+}
+document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+
+document.querySelectorAll(".zoom-reset").forEach((b) => b.addEventListener("click", () => resetZoom($("#" + b.dataset.plot))));
 
 $("#sim-png").addEventListener("click", () => savePNG($("#sim-plot"), "Simulated_binding_curves.png"));
 $("#est-png").addEventListener("click", () => savePNG($("#est-plot"), "Plot_A1A2B1.png"));
@@ -1282,6 +1957,39 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
   else exportPDF();
 }));
 
+/* ================= Light / dark theme ================= */
+
+function isDark() { return document.documentElement.dataset.theme === "dark"; }
+function setTheme(theme, originEl, instant) {
+  const root = document.documentElement;
+  const apply = () => {
+    root.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = theme === "dark" ? "#121a2c" : "#eef3fb";
+    const label = theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
+    $("#theme-btn").setAttribute("aria-label", label); $("#theme-btn").title = label;
+    viz.repaint();
+    try { localStorage.setItem("nmrTheme", theme); } catch (e) {}
+  };
+  if (instant || REDUCED_MOTION) return apply();
+  if (document.startViewTransition && originEl) {
+    // the new theme spreads out in a circle from the toggle button
+    const r = originEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const end = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    const vt = document.startViewTransition(apply);
+    vt.ready.then(() => root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${end}px at ${x}px ${y}px)`] },
+      { duration: 750, easing: "cubic-bezier(.25, .9, .3, 1)", pseudoElement: "::view-transition-new(root)" }
+    )).catch(() => {});
+    return;
+  }
+  root.classList.add("theme-anim");
+  apply();
+  setTimeout(() => root.classList.remove("theme-anim"), 750);
+}
+$("#theme-btn").addEventListener("click", (e) => setTheme(isDark() ? "light" : "dark", e.currentTarget));
+if (isDark()) setTheme("dark", null, true);   // sync labels + colours for a remembered choice
+
 // "Install app" button (Chrome / Edge offer this when the page is served from the website)
 let installPrompt = null;
 addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; $("#install-btn").hidden = false; });
@@ -1301,34 +2009,94 @@ function fmtVal(v) {
   if (v !== 0 && (Math.abs(v) >= 1e5 || Math.abs(v) < 1e-3)) return v.toExponential(3).replace("e+", "e");
   return String(Number(v.toPrecision(4)));
 }
+// Repaint for a new zoom window: reuses the curves already computed, so it stays smooth
+function repaintZoom(svg) {
+  const g = svg._geo, ft = svg._fullTicks;
+  if (!g || !ft) return;
+  const v = clampView(svg);
+  const xt = v ? ticksIn(v.xd[0], v.xd[1]) : ft.x;
+  const yt = v ? ticksIn(v.yd[0], v.yd[1]) : ft.y;
+  const { W, H, m, pw, ph, spec, legend } = g;
+  const X = (x) => m.l + ((x - xt.lo) / (xt.hi - xt.lo)) * pw;
+  const Y = (y) => m.t + ph - ((y - yt.lo) / (yt.hi - yt.lo)) * ph;
+  svg._geo = { W, H, m, pw, ph, xt, yt, X, Y, spec, legend };
+  const zr = svg.parentElement.querySelector(".zoom-reset");
+  if (zr) zr.hidden = !v;
+  cancelAnimationFrame(svg._raf);
+  paintPlot(svg, svg._geo, {
+    xd: [xt.lo, xt.hi], yd: [yt.lo, yt.hi],
+    lines: spec.lines.map((l) => ({ xs: l.xs, ys: l.ys })),
+    markers: spec.markers.map((mk) => ({ xs: mk.xs, ys: mk.ys })),
+  });
+  const tip = svg.parentElement.querySelector(".tip");
+  if (tip && tip.style.display === "block" && svg._hoverX != null) renderHover(svg, svg._hoverX, false);
+}
+function scheduleZoom(svg) {
+  if (svg._zoomRaf) return;
+  svg._zoomRaf = requestAnimationFrame(() => { svg._zoomRaf = 0; repaintZoom(svg); });
+}
+function resetZoom(svg) {
+  if (!svg._view) return;
+  svg._view = null;
+  repaintZoom(svg);
+}
+
 function hideHover(svg) {
   const box = svg.parentElement;
   box.querySelectorAll(".xhair, .tip, .hdot").forEach((e) => (e.style.display = "none"));
 }
+// Pointer events can arrive faster than the screen refreshes: render the latest one per frame
+function queueHover(svg, e) {
+  svg._pendingHover = { clientX: e.clientX, clientY: e.clientY, altKey: e.altKey, shiftKey: e.shiftKey };
+  if (svg._hoverRaf) return;
+  svg._hoverRaf = requestAnimationFrame(() => {
+    svg._hoverRaf = 0;
+    if (svg._pendingHover) showHover(svg, svg._pendingHover);
+  });
+}
+
 function showHover(svg, e) {
+  const g = svg._geo;
+  if (!g || !g.spec.lines.length) return;
+  const r = svg.getBoundingClientRect();
+  const k = r.width / g.W;
+  const vx = (e.clientX - r.left) / k, vy = (e.clientY - r.top) / k;
+  if (vx < g.m.l - 4 || vx > g.m.l + g.pw + 4 || vy < g.m.t - 4 || vy > g.m.t + g.ph + 4) return hideHover(svg);
+
+  const xs = g.spec.lines[0].xs;
+  let x = g.xt.lo + ((vx - g.m.l) / g.pw) * (g.xt.hi - g.xt.lo);
+  x = Math.min(Math.max(x, xs[0]), xs[xs.length - 1]);
+
+  // The reading is continuous everywhere; it only clicks onto a titration point
+  // when the pointer is right on top of one, and Alt or Shift turns even that off.
+  let snapped = false;
+  if (!e.altKey && !e.shiftKey) {
+    let best = 1.6;
+    g.spec.markers.forEach((mk) => mk.xs.forEach((mx) => {
+      const d = Math.abs(g.X(mx) - vx);
+      if (d < best) { best = d; x = mx; snapped = true; }
+    }));
+  }
+  svg._hoverY = e.clientY;
+  renderHover(svg, x, snapped);
+}
+
+// Draw the crosshair, the dots and the tooltip for one x value
+function renderHover(svg, x, snapped) {
   const g = svg._geo;
   if (!g || !g.spec.lines.length) return;
   const box = svg.parentElement;
   const r = svg.getBoundingClientRect(), br = box.getBoundingClientRect();
   const k = r.width / g.W;
-  const vx = (e.clientX - r.left) / k, vy = (e.clientY - r.top) / k;
-  if (vx < g.m.l - 4 || vx > g.m.l + g.pw + 4 || vy < g.m.t - 4 || vy > g.m.t + g.ph + 4) return hideHover(svg);
-
   const lines = g.spec.lines, xs = lines[0].xs;
-  let x = g.xt.lo + ((vx - g.m.l) / g.pw) * (g.xt.hi - g.xt.lo);
   x = Math.min(Math.max(x, xs[0]), xs[xs.length - 1]);
-
-  // Snap to titration points when the pointer is close to one
-  let snapped = false, best = 10;
-  g.spec.markers.forEach((mk) => mk.xs.forEach((mx) => {
-    const d = Math.abs(g.X(mx) - vx);
-    if (d < best) { best = d; x = mx; snapped = true; }
-  }));
-
+  svg._hoverX = x;
   const ox = r.left - br.left, oy = r.top - br.top;
   const px = ox + g.X(x) * k;
   const xh = box.querySelector(".xhair");
-  Object.assign(xh.style, { display: "block", left: px + "px", top: oy + g.m.t * k + "px", height: g.ph * k + "px" });
+  xh.style.display = "block";
+  xh.style.transform = `translate(${px.toFixed(1)}px, ${(oy + g.m.t * k).toFixed(1)}px)`;
+  xh.style.height = (g.ph * k).toFixed(1) + "px";
 
   const vals = lines.map((l) => l.fn(x));
   let dots = box.querySelectorAll(".hdot");
@@ -1340,12 +2108,19 @@ function showHover(svg, e) {
   lines.forEach((l, i) => {
     const y = g.Y(vals[i]);
     const inside = isFinite(y) && y >= g.m.t - 1 && y <= g.m.t + g.ph + 1;
-    Object.assign(dots[i].style, { display: inside ? "block" : "none", left: px + "px", top: oy + y * k + "px", background: l.color });
+    const st = dots[i].style;
+    st.display = inside ? "block" : "none";
+    if (!inside) return;
+    st.transform = `translate(${px.toFixed(1)}px, ${(oy + y * k).toFixed(1)}px)`;   // transforms avoid a layout on every move
+    st.background = l.color;
+    st.opacity = svg._focus != null && svg._focus !== i ? 0.25 : 1;
   });
 
-  let html = `<div class="th">[L] = ${fmtVal(x)} µM${snapped ? '<span class="tag">titration point</span>' : ""}</div>`;
+  const span = g.xt.hi - g.xt.lo;
+  const xText = x === 0 ? "0" : Math.abs(x) < span / 100 ? x.toFixed(3) : Math.abs(x) < span / 10 ? x.toFixed(2) : fmtVal(x);
+  let html = `<div class="th">[L] = ${xText} µM${snapped ? '<span class="tag">titration point</span>' : ""}</div>`;
   html += `<div class="ts">${g.spec.valueName}</div>`;
-  html += lines.map((l, i) => `<div class="row"><span class="sw" style="background:${l.color}"></span><span><i>K</i><sub>d</sub> ${l.kd} µM</span><span class="v">${fmtVal(vals[i])}</span></div>`).join("");
+  html += lines.map((l, i) => `<div class="row${svg._focus != null && svg._focus !== i ? " dim" : ""}"><span class="sw${l.dash ? " dash" : ""}" style="background:${l.color}"></span><span><i>K</i><sub>d</sub> ${l.kd} µM${l.dash ? " (explore)" : ""}</span><span class="v">${fmtVal(vals[i])}</span></div>`).join("");
   if (snapped) {
     g.spec.markers.filter((mk) => mk.dataLabel).forEach((mk) => {
       const i = mk.xs.indexOf(x);
@@ -1358,14 +2133,76 @@ function showHover(svg, e) {
   const tw = tip.offsetWidth, th = tip.offsetHeight;
   let left = px + 16;
   if (left + tw > box.clientWidth - 6) left = px - 16 - tw;
-  const top = Math.min(Math.max(e.clientY - br.top - th / 2, 6), box.clientHeight - th - 6);
+  const anchorY = svg._hoverY != null ? svg._hoverY - br.top : oy + (g.m.t + g.ph / 2) * k;
+  const top = Math.min(Math.max(anchorY - th / 2, 6), box.clientHeight - th - 6);
   Object.assign(tip.style, { left: Math.max(6, left) + "px", top: top + "px" });
 }
 ["#sim-plot", "#est-plot"].forEach((id) => {
   const svg = $(id);
-  svg.addEventListener("pointermove", (e) => showHover(svg, e));
-  svg.addEventListener("pointerdown", (e) => showHover(svg, e));
-  svg.addEventListener("pointerleave", () => hideHover(svg));
+  svg.addEventListener("pointermove", (e) => {
+    const lg = e.target.closest && e.target.closest(".lg");
+    if (e.pointerType === "mouse") setFocus(svg, lg ? +lg.dataset.i : null);
+    if (!lg) queueHover(svg, e); else hideHover(svg);
+  });
+  svg.addEventListener("pointerdown", (e) => {
+    const lg = e.target.closest && e.target.closest(".lg");
+    if (lg && e.pointerType !== "mouse") setFocus(svg, svg._focus === +lg.dataset.i ? null : +lg.dataset.i);
+    if (!lg) showHover(svg, e);
+  });
+  svg.addEventListener("pointerleave", (e) => { hideHover(svg); if (e.pointerType === "mouse") setFocus(svg, null); });
+  // scroll to zoom the x-axis around the pointer; Shift+scroll zooms the y-axis; two-finger sideways scroll pans
+  svg.addEventListener("wheel", (e) => {
+    const g = svg._geo;
+    if (!g) return;
+    const r = svg.getBoundingClientRect(), k = r.width / g.W;
+    const vx = (e.clientX - r.left) / k, vy = (e.clientY - r.top) / k;
+    if (vx < g.m.l || vx > g.m.l + g.pw || vy < g.m.t || vy > g.m.t + g.ph) return;   // outside the axes: let the page scroll
+    e.preventDefault();
+    const f = svg._full || { xd: [g.xt.lo, g.xt.hi], yd: [g.yt.lo, g.yt.hi] };
+    const view = svg._view || { xd: [g.xt.lo, g.xt.hi], yd: [g.yt.lo, g.yt.hi] };
+    const xd = view.xd.slice(), yd = view.yd.slice();
+    const minSpan = (a) => (a[1] - a[0]) / 2000;
+
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {               // pan sideways
+      const shift = (e.deltaX / (g.pw * k)) * (xd[1] - xd[0]);
+      xd[0] += shift; xd[1] += shift;
+    } else {
+      const factor = Math.min(3, Math.max(1 / 3, Math.exp(e.deltaY * 0.0016)));
+      if (e.shiftKey) {
+        const y = yd[0] + ((g.m.t + g.ph - vy) / g.ph) * (yd[1] - yd[0]);
+        let span = Math.max(minSpan(f.yd), (yd[1] - yd[0]) * factor);
+        yd[0] = y - (y - yd[0]) * (span / (view.yd[1] - view.yd[0]));
+        yd[1] = yd[0] + span;
+      } else {
+        const x = xd[0] + ((vx - g.m.l) / g.pw) * (xd[1] - xd[0]);
+        let span = Math.max(minSpan(f.xd), (xd[1] - xd[0]) * factor);
+        xd[0] = x - (x - xd[0]) * (span / (view.xd[1] - view.xd[0]));
+        xd[1] = xd[0] + span;
+      }
+    }
+    svg._view = { xd, yd };
+    svg._shown = null;                                            // snap straight to the new view
+    scheduleZoom(svg);
+  }, { passive: false });
+  svg.addEventListener("dblclick", () => resetZoom(svg));
+
+  // click the plot, then use the arrow keys for an exact reading at any concentration
+  svg.setAttribute("tabindex", "0");
+  svg.addEventListener("keydown", (e) => {
+    const g = svg._geo;
+    if (!g) return;
+    const xs = g.spec.lines[0].xs, lo = xs[0], hi = xs[xs.length - 1];
+    const fine = (hi - lo) / 1000;   // Shift = 10x steps, Alt = fine tenths
+    const keys = { ArrowLeft: -1, ArrowRight: 1, Home: 0, End: 0, PageUp: 10, PageDown: -10 };
+    if (!(e.key in keys)) return;
+    e.preventDefault();
+    let x = svg._hoverX != null ? svg._hoverX : (lo + hi) / 2;
+    if (e.key === "Home") x = lo;
+    else if (e.key === "End") x = hi;
+    else x += keys[e.key] * fine * (e.shiftKey ? 10 : e.altKey ? 0.1 : 1);
+    renderHover(svg, x, false);
+  });
+  svg.addEventListener("blur", () => hideHover(svg));
 });
 
 /* ================= Startup splash ================= */
@@ -1392,6 +2229,7 @@ function showHover(svg, e) {
 window.NMR = { fractionBound, linspace, swappingVolumes, pyFloat, makeZip, crc32, inputsText };
 
 updateSim(true); updateSwap(false); updateEst(false);
+viz.sync();
 placeIndicators();
 requestAnimationFrame(() => document.fonts && document.fonts.ready.then(placeIndicators));
 </script>
