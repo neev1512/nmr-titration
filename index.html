@@ -265,7 +265,11 @@
   :root[data-theme="dark"] .peak-row input { background: rgba(12,16,28,.55); border-color: rgba(255,255,255,.09); }
   .chip.hot { background: linear-gradient(180deg, #7fa3ee, #6a78d8); color: #fff; border-color: rgba(255,255,255,.5); }
   .chip.warm { background: rgba(147, 179, 246, .22); color: var(--accent); }
-  .resbox code { background: rgba(255,255,255,.8); border-radius: 5px; padding: 0 4px; }
+  .resbox code, .help code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; font-weight: 600;
+    padding: 2px 7px; border-radius: 7px; white-space: nowrap;
+    background: rgba(99, 136, 220, .16); color: #2f5fae; border: 1px solid rgba(99, 136, 220, .3); }
+  :root[data-theme="dark"] .resbox code, :root[data-theme="dark"] .help code {
+    background: rgba(147, 179, 246, .22); color: #d7e5ff; border-color: rgba(147, 179, 246, .4); }
   .restable tr.odd td { background: rgba(255, 214, 160, .35); }
   .restable .flag { color: #8a5a12; font-weight: 600; font-size: 12px; }
   :root[data-theme="dark"] .restable tr.odd td { background: rgba(140, 95, 20, .3); }
@@ -356,7 +360,7 @@
   .help { max-width: 780px; }
   .help ol, .help ul { margin: 0 0 6px; padding-left: 22px; }
   .help li { margin-bottom: 8px; }
-  .help code { background: rgba(255,255,255,.8); border: 1px solid #fff; border-radius: 6px; padding: 0 6px; font-size: 13px; }
+
   .panel.active .help > * { animation: rise .8s var(--ease) both; }
   .panel.active .help > *:nth-child(2) { animation-delay: .07s; }
   .panel.active .help > *:nth-child(3) { animation-delay: .14s; }
@@ -591,7 +595,7 @@
   :root[data-theme="dark"] .slider::-webkit-slider-runnable-track { background: linear-gradient(90deg, #7fa3ee, #8f86e2) 0 / var(--p) 100% no-repeat, rgba(160,180,220,.18); }
   :root[data-theme="dark"] .slider::-moz-range-track { background: rgba(160,180,220,.18); }
   :root[data-theme="dark"] .slider::-webkit-slider-thumb { background: #dfe7f7; border-color: #dfe7f7; }
-  :root[data-theme="dark"] .help code { background: rgba(44,52,78,.7); border-color: rgba(255,255,255,.07); }
+
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -2586,7 +2590,7 @@ function applySetupFromHash() {
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.7";          // keep in step with website/version.json
+const APP_VERSION = "2.8";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
