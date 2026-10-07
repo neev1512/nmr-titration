@@ -1969,8 +1969,15 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.2";          // keep in step with website/version.json
+const APP_VERSION = "1.3";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
+// hovering the version shows what changed in it
+if (location.protocol.startsWith("http")) {
+  fetch("version.json?t=" + Date.now(), { cache: "no-store" })
+    .then((r) => r.json())
+    .then((v) => { if (v.version === APP_VERSION) $(".ver").title = `${v.date} — ${v.notes}`; })
+    .catch(() => {});
+}
 
 function showUpdateBar(newVersion) {
   if ($("#update-bar")) return;
