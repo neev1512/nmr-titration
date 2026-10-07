@@ -391,6 +391,17 @@
   .plotbox svg.focus path[data-i].on { stroke-width: 3.6; }
   .plotbox svg .lg { cursor: pointer; }
   .plotbox svg { cursor: crosshair; }
+  .panbar { position: relative; height: 10px; margin: 8px 10px 2px; border-radius: 999px; background: rgba(120, 140, 180, .16);
+    cursor: pointer; touch-action: none; animation: rise .4s var(--ease) both; }
+  .panbar[hidden] { display: none; }
+  .panthumb { position: absolute; top: -2px; height: 14px; min-width: 26px; border-radius: 999px; cursor: grab;
+    background: linear-gradient(180deg, #9ab8f5, #7d8fe6); box-shadow: 0 2px 8px rgba(59,111,196,.3);
+    transition: filter .3s var(--ease), transform .3s var(--spring); }
+  .panthumb:hover { filter: brightness(1.06); }
+  .panthumb:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+  .panbar.dragging .panthumb { cursor: grabbing; transform: scaleY(1.12); }
+  :root[data-theme="dark"] .panbar { background: rgba(160, 180, 220, .18); }
+
   .zoom-reset { position: absolute; z-index: 4; top: 12px; right: 12px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
     padding: 5px 11px; border-radius: 999px; color: var(--accent); background: rgba(255,255,255,.9); border: 1px solid rgba(255,255,255,.95);
     box-shadow: 0 3px 10px rgba(59,111,196,.16); animation: rise .4s var(--ease) both; }
@@ -654,7 +665,7 @@
         </div>
       </div>
       <div>
-        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="sim-plot" hidden>Reset zoom</button><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="sim-plot" hidden>Reset zoom</button><div class="panbar" data-plot="sim-plot" hidden><div class="panthumb" tabindex="0" role="scrollbar" aria-label="Drag to move along the x-axis"></div></div><svg id="sim-plot" role="img" aria-label="Simulated binding curves"></svg></div>
         <div class="out-actions"><button class="btn" id="sim-csv">Download data (CSV)</button><button class="btn" id="sim-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -779,7 +790,7 @@
         </div>
       </div>
       <div>
-        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="est-plot" hidden>Reset zoom</button><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
+        <div class="plotbox"><div class="xhair"></div><div class="tip"></div><button class="zoom-reset" type="button" data-plot="est-plot" hidden>Reset zoom</button><div class="panbar" data-plot="est-plot" hidden><div class="panthumb" tabindex="0" role="scrollbar" aria-label="Drag to move along the x-axis"></div></div><svg id="est-plot" role="img" aria-label="CSP ratio compared with simulated curves"></svg></div>
         <div class="out-actions"><button class="btn" id="est-csv">Download data (CSV)</button><button class="btn" id="est-png">Save plot as PNG</button></div>
       </div>
     </div>
@@ -814,7 +825,7 @@
       <h3>Reading the plots</h3>
       <ul>
         <li>Move the mouse over a plot to read exact values for every K<sub>d</sub> at <b>any</b> concentration. It only clicks onto a titration point when you are right on top of one, and holding <kbd>Alt</kbd> (or <kbd>Shift</kbd>) turns even that off.</li>
-        <li><b>Zoom:</b> scroll on the plot to zoom the x-axis around the cursor, <kbd>Shift</kbd>+scroll to zoom the y-axis, and swipe sideways (two fingers) to pan. <b>Double-click</b> or press <b>Reset zoom</b> to go back. Zooming only changes the view, not your inputs or the exported data.</li>
+        <li><b>Zoom:</b> scroll on the plot to zoom the x-axis around the cursor, <kbd>Shift</kbd>+scroll to zoom the y-axis. Once zoomed, a <b>slider appears under the plot</b>: drag it (or click the track) to move along the x-axis. Swiping sideways with two fingers works too. <b>Double-click</b> or press <b>Reset zoom</b> to go back. Zooming only changes the view, not your inputs or the exported data.</li>
         <li>For a precise reading near the origin, click the plot once and use <kbd>←</kbd> <kbd>→</kbd> to step the crosshair (<kbd>Shift</kbd> for 10× steps, <kbd>Alt</kbd> for fine ones, <kbd>Home</kbd>/<kbd>End</kbd> for the ends).</li>
         <li>Hover a K<sub>d</sub> in the legend to highlight that curve and fade the others (on a touch screen, tap it).</li>
       </ul>
@@ -1049,6 +1060,7 @@ function drawPlot(svg, spec, animate) {
   const yt = v ? ticksIn(v.yd[0], v.yd[1]) : full.y;
   const zr = svg.parentElement.querySelector(".zoom-reset");
   if (zr) zr.hidden = !v;
+  if (typeof updatePanBar === "function") updatePanBar(svg);
   const X = (x) => m.l + ((x - xt.lo) / (xt.hi - xt.lo)) * pw;
   const Y = (y) => m.t + ph - ((y - yt.lo) / (yt.hi - yt.lo)) * ph;
   const geo = { W, H, m, pw, ph, xt, yt, X, Y, spec, legend };
@@ -1969,7 +1981,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.3";          // keep in step with website/version.json
+const APP_VERSION = "1.4";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2072,6 +2084,7 @@ function repaintZoom(svg) {
   svg._geo = { W, H, m, pw, ph, xt, yt, X, Y, spec, legend };
   const zr = svg.parentElement.querySelector(".zoom-reset");
   if (zr) zr.hidden = !v;
+  updatePanBar(svg);
   cancelAnimationFrame(svg._raf);
   paintPlot(svg, svg._geo, {
     xd: [xt.lo, xt.hi], yd: [yt.lo, yt.hi],
@@ -2081,6 +2094,59 @@ function repaintZoom(svg) {
   const tip = svg.parentElement.querySelector(".tip");
   if (tip && tip.style.display === "block" && svg._hoverX != null) renderHover(svg, svg._hoverX, false);
 }
+// The pan bar shows which slice of the full x-range is on screen
+function updatePanBar(svg) {
+  const bar = svg.parentElement.querySelector(".panbar");
+  const f = svg._full, v = svg._view;
+  if (!bar || !f) return;
+  if (!v) { bar.hidden = true; return; }
+  const fullSpan = f.xd[1] - f.xd[0];
+  if (!(fullSpan > 0)) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const th = bar.firstElementChild;
+  th.style.width = Math.max(6, ((v.xd[1] - v.xd[0]) / fullSpan) * 100) + "%";
+  th.style.left = (((v.xd[0] - f.xd[0]) / fullSpan) * 100) + "%";
+  th.setAttribute("aria-valuetext", `${fmtVal(v.xd[0])} to ${fmtVal(v.xd[1])} µM`);
+}
+function panTo(svg, lo) {
+  const f = svg._full, v = svg._view;
+  if (!f || !v) return;
+  const span = v.xd[1] - v.xd[0];
+  lo = Math.max(f.xd[0], Math.min(lo, f.xd[1] - span));
+  svg._view = { xd: [lo, lo + span], yd: v.yd };
+  scheduleZoom(svg);
+  updatePanBar(svg);
+}
+document.querySelectorAll(".panbar").forEach((bar) => {
+  const svg = () => $("#" + bar.dataset.plot);
+  const thumb = bar.firstElementChild;
+  bar.addEventListener("pointerdown", (e) => {
+    const sv = svg(), f = sv._full, v = sv._view;
+    if (!f || !v) return;
+    e.preventDefault();
+    const rect = bar.getBoundingClientRect(), fullSpan = f.xd[1] - f.xd[0], span = v.xd[1] - v.xd[0];
+    if (!e.target.closest(".panthumb")) panTo(sv, f.xd[0] + ((e.clientX - rect.left) / rect.width) * fullSpan - span / 2);
+    const startX = e.clientX, startLo = sv._view.xd[0];
+    bar.classList.add("dragging");
+    const move = (ev) => panTo(sv, startLo + ((ev.clientX - startX) / rect.width) * fullSpan);
+    const up = () => {
+      bar.classList.remove("dragging");
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  });
+  thumb.addEventListener("keydown", (e) => {
+    const sv = svg(), v = sv._view;
+    if (!v) return;
+    const stepK = { ArrowLeft: -0.08, ArrowRight: 0.08, PageDown: -0.5, PageUp: 0.5 };
+    if (!(e.key in stepK)) return;
+    e.preventDefault();
+    panTo(sv, v.xd[0] + stepK[e.key] * (v.xd[1] - v.xd[0]) * (e.shiftKey ? 3 : 1));
+  });
+});
+
 function scheduleZoom(svg) {
   if (svg._zoomRaf) return;
   svg._zoomRaf = requestAnimationFrame(() => { svg._zoomRaf = 0; repaintZoom(svg); });
