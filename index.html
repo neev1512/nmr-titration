@@ -236,7 +236,7 @@
   }
   .error.show { display: block; animation: rise .6s var(--ease) both; }
 
-  .fitcard { margin-bottom: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.7);
+  .fitcard { margin-bottom: 14px; padding: 16px 18px; border-radius: 20px; background: rgba(255,255,255,.7);
     border: 1px solid rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(60,80,120,.08); animation: rise .5s var(--ease) both; }
   .fitcard[hidden] { display: none; }
   :root[data-theme="dark"] .fitcard { background: rgba(26,32,50,.6); border-color: rgba(255,255,255,.08); }
@@ -248,12 +248,12 @@
   .fit-rows { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font-size: 13px; }
   .fit-rows div { display: flex; gap: 8px; align-items: baseline; }
   .fit-rows span { color: var(--muted); }
-  .resbox { margin-bottom: 14px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.55);
+  .resbox { margin-bottom: 14px; padding: 12px 16px; border-radius: 20px; background: rgba(255,255,255,.55);
     border: 1px solid rgba(255,255,255,.9); }
   .resbox summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--accent); }
   .resbox .hint { margin: 8px 0 6px; }
   .resbox textarea { width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text);
-    padding: 9px 11px; border-radius: 12px; border: 1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.75); resize: vertical; }
+    padding: 10px 12px; border-radius: 16px; border: 1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.75); resize: vertical; }
   .resbox textarea:focus { outline: none; border-color: rgba(106,143,224,.7); box-shadow: 0 0 0 4px rgba(106,143,224,.16); }
   :root[data-theme="dark"] .resbox { background: rgba(26,32,50,.5); border-color: rgba(255,255,255,.08); }
   :root[data-theme="dark"] .resbox textarea { background: rgba(12,16,28,.55); border-color: rgba(255,255,255,.09); }
@@ -264,11 +264,26 @@
   :root[data-theme="dark"] .restable .flag { color: #ffd79a; }
 
   .fit-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
-  .note.warn { background: rgba(255, 238, 214, .85); color: #8a5a12; }
-  :root[data-theme="dark"] .note { background: rgba(31, 107, 79, .25); color: #a8e6c9; }
-  :root[data-theme="dark"] .note.warn { background: rgba(140, 95, 20, .3); color: #ffd79a; }
+  /* The advice boxes above and below the plots */
+  .note { position: relative; margin: 0 0 14px; padding: 12px 16px 12px 42px; border-radius: 20px;
+    font-size: 13.5px; line-height: 1.5; color: var(--text);
+    background: rgba(255, 255, 255, .62); -webkit-backdrop-filter: blur(14px) saturate(160%); backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, .95); box-shadow: 0 4px 16px rgba(60, 80, 120, .08), var(--shine);
+    animation: rise .5s var(--ease) both; }
+  .note[hidden] { display: none; }
+  .note::before { content: ""; position: absolute; left: 16px; top: 15px; width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #8fe0bb, #35a37a); box-shadow: 0 1px 4px rgba(53, 163, 122, .4); }
+  .note.warn::before { background: radial-gradient(circle at 35% 35%, #ffd79a, #e0943a); box-shadow: 0 1px 4px rgba(224, 148, 58, .4); }
+  .note b { font-weight: 650; }
+  :root[data-theme="dark"] .note { background: rgba(26, 32, 50, .6); border-color: rgba(255, 255, 255, .08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .3), var(--shine); }
 
-  .plotbox { border-radius: 16px; background: rgba(255,255,255,.92); padding: 10px;
+  /* Softer, squircle-like corners where the browser supports them */
+  @supports (corner-shape: squircle) {
+    .note, .fitcard, .resbox, .plotbox, .tablewrap, .panel, header, .diagram { corner-shape: squircle; }
+  }
+
+  .plotbox { border-radius: 20px; background: rgba(255,255,255,.92); padding: 10px;
     border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
   .plotbox svg { display: block; width: 100%; height: auto; }
   .out-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
@@ -288,7 +303,7 @@
   th:first-child, td:first-child, th:last-child, td:last-child { text-align: left; }
   tbody tr { transition: background .4s var(--ease); }
   tbody tr:hover { background: rgba(106, 143, 224, .08); }
-  .tablewrap { overflow-x: auto; border-radius: 16px; background: rgba(255,255,255,.85); border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
+  .tablewrap { overflow-x: auto; border-radius: 20px; background: rgba(255,255,255,.85); border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
   .anim-rows tbody tr { opacity: 0; animation: rise .75s var(--ease) forwards; }
   td.chg { animation: cellGlow 1.4s var(--ease); border-radius: 6px; }
   @keyframes cellGlow { 0% { background: rgba(106, 143, 224, .30); color: var(--accent); } 100% { background: transparent; } }
@@ -2336,7 +2351,7 @@ function applySetupFromHash() {
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.4";          // keep in step with website/version.json
+const APP_VERSION = "2.5";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
