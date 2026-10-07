@@ -1058,6 +1058,7 @@ function drawPlot(svg, spec, animate) {
 
   const full = { x: niceTicks(xmin, xmax), y: niceTicks(ymin, ymax) };
   svg._full = { xd: [full.x.lo, full.x.hi], yd: [full.y.lo, full.y.hi] };
+  svg._dataX = isFinite(xmin) && isFinite(xmax) && xmax > xmin ? [xmin, xmax] : null;
   svg._fullTicks = full;
   const v = clampView(svg);
   const xt = v ? ticksIn(v.xd[0], v.xd[1]) : full.x;
@@ -1109,7 +1110,9 @@ function clampView(svg) {
     let lo = Math.max(fullRange[0], Math.min(view[0], fullRange[1] - span));
     return [lo, lo + span];
   };
-  const xd = fit(v.xd, f.xd), yd = fit(v.yd, f.yd);
+  const d = svg._dataX;
+  const xLimit = d && v.xd[1] - v.xd[0] <= d[1] - d[0] ? d : f.xd;   // keep the view over the curves
+  const xd = fit(v.xd, xLimit), yd = fit(v.yd, f.yd);
   const same = (a, b) => Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9;
   if (same(xd, f.xd) && same(yd, f.yd)) { svg._view = null; return null; }
   svg._view = { xd, yd };
@@ -1985,7 +1988,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.8";          // keep in step with website/version.json
+const APP_VERSION = "1.9";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2101,8 +2104,10 @@ function repaintZoom(svg) {
       const r = svg.getBoundingClientRect(), k = r.width / g2.W;
       const vx = (c.x - r.left) / k;
       const xs = g2.spec.lines[0].xs;
-      let x = g2.xt.lo + ((vx - g2.m.l) / g2.pw) * (g2.xt.hi - g2.xt.lo);
-      renderHover(svg, Math.min(Math.max(x, xs[0]), xs[xs.length - 1]), false);
+      const x = g2.xt.lo + ((vx - g2.m.l) / g2.pw) * (g2.xt.hi - g2.xt.lo);
+      const pad = (g2.xt.hi - g2.xt.lo) / g2.pw * 3;
+      if (x < xs[0] - pad || x > xs[xs.length - 1] + pad) hideHover(svg);
+      else renderHover(svg, Math.min(Math.max(x, xs[0]), xs[xs.length - 1]), false);
     } else if (svg._hoverX != null) {
       renderHover(svg, svg._hoverX, false);
     }
@@ -2160,6 +2165,8 @@ function showHover(svg, e) {
 
   const xs = g.spec.lines[0].xs;
   let x = g.xt.lo + ((vx - g.m.l) / g.pw) * (g.xt.hi - g.xt.lo);
+  const pad = (g.xt.hi - g.xt.lo) / g.pw * 3;                       // a 3 px grace band at each end
+  if (x < xs[0] - pad || x > xs[xs.length - 1] + pad) return hideHover(svg);
   x = Math.min(Math.max(x, xs[0]), xs[xs.length - 1]);
 
   // The reading is continuous everywhere; it only clicks onto a titration point
@@ -2201,9 +2208,10 @@ function renderHover(svg, x, snapped) {
     lines.forEach(() => { const d = document.createElement("div"); d.className = "hdot"; box.appendChild(d); });
     dots = box.querySelectorAll(".hdot");
   }
+  const xInside = g.X(x) >= g.m.l - 1 && g.X(x) <= g.m.l + g.pw + 1;
   lines.forEach((l, i) => {
     const y = g.Y(vals[i]);
-    const inside = isFinite(y) && y >= g.m.t - 1 && y <= g.m.t + g.ph + 1;
+    const inside = xInside && isFinite(y) && y >= g.m.t - 1 && y <= g.m.t + g.ph + 1;
     const st = dots[i].style;
     st.display = inside ? "block" : "none";
     if (!inside) return;
