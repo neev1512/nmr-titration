@@ -236,6 +236,23 @@
   }
   .error.show { display: block; animation: rise .6s var(--ease) both; }
 
+  .fitcard { margin-bottom: 14px; padding: 14px 16px; border-radius: 16px; background: rgba(255,255,255,.7);
+    border: 1px solid rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(60,80,120,.08); animation: rise .5s var(--ease) both; }
+  .fitcard[hidden] { display: none; }
+  :root[data-theme="dark"] .fitcard { background: rgba(26,32,50,.6); border-color: rgba(255,255,255,.08); }
+  .fit-head { font-size: 12.5px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .fit-kd { font-size: 24px; font-weight: 700; letter-spacing: -.01em; margin-top: 2px;
+    background: linear-gradient(90deg, #2f5fae, #6a5fc8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  :root[data-theme="dark"] .fit-kd { background-image: linear-gradient(90deg, #a3c0fa, #bda9f5); }
+  .fit-range { font-size: 13px; color: var(--muted); }
+  .fit-rows { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font-size: 13px; }
+  .fit-rows div { display: flex; gap: 8px; align-items: baseline; }
+  .fit-rows span { color: var(--muted); }
+  .fit-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+  .note.warn { background: rgba(255, 238, 214, .85); color: #8a5a12; }
+  :root[data-theme="dark"] .note { background: rgba(31, 107, 79, .25); color: #a8e6c9; }
+  :root[data-theme="dark"] .note.warn { background: rgba(140, 95, 20, .3); color: #ffd79a; }
+
   .plotbox { border-radius: 16px; background: rgba(255,255,255,.92); padding: 10px;
     border: 1px solid #fff; box-shadow: 0 6px 22px rgba(60,80,120,.08); }
   .plotbox svg { display: block; width: 100%; height: auto; }
@@ -741,6 +758,7 @@
       <div>
         <h3 style="margin-top:0">Swapping scheme</h3>
         <div class="tablewrap"><table id="swap-table"></table></div>
+        <div class="note" id="pipette-check" hidden></div>
         <h3>Titration points (in measurement order)</h3>
         <div class="chips" id="swap-points"></div>
         <div class="out-actions">
@@ -792,6 +810,7 @@
         </div>
       </div>
       <div>
+        <div class="fitcard" id="fit-card" hidden></div>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="est-plot" aria-label="Zoom out" title="Zoom out">−</button>
             <button class="zbtn" type="button" data-zoom="in" data-plot="est-plot" aria-label="Zoom in" title="Zoom in">+</button>
@@ -826,6 +845,19 @@
         <li>The <b>sliders</b> under single-value boxes let you drag a value and watch the results change live.</li>
         <li><b>Explore a K<sub>d</sub></b> (tabs 1 and 3) draws a dashed test curve you can drag. On tab 3, drag it until it passes through your black circles, then click <b>Add to list</b> to keep it.</li>
         <li><b>Examples</b> (Paper, Tight binder, Weak binder) fill in all three tabs at once. <b>Paper</b> restores the notebook's example inputs.</li>
+      </ul>
+
+      <h3>Fitting K<sub>d</sub></h3>
+      <ul>
+        <li>Tab 3 fits your measured CSPs by least squares and shows the <b>best-fit K<sub>d</sub></b> with a 95% range, the fitted Δδ<sub>max</sub> and the RMS residual. The fit appears as a dark dashed curve on the plot.</li>
+        <li>It warns you when the answer is only a limit: if K<sub>d</sub> is far below the protein concentration (stoichiometric titration) or if your highest ligand concentration is far from saturation.</li>
+        <li>Three points are enough for a fit, but more points give a tighter range.</li>
+      </ul>
+
+      <h3>At the bench</h3>
+      <ul>
+        <li>Tab 2 checks the swap volumes for you and warns when a swap is <b>under 5 µL</b> (hard to pipette accurately) or takes more than half the sample.</li>
+        <li>You can <b>paste a column straight from Excel</b> into any of the value boxes: it is converted to a comma list automatically.</li>
       </ul>
 
       <h3>Reading the plots</h3>
@@ -1386,6 +1418,7 @@ function updateSwap(animate) {
     }
     const unsorted = conc.some((c, i) => i > 0 && c < conc[i - 1]);
     showError("#swap-error", unsorted ? "Note: the concentrations are not in increasing order, so the scheme may not make sense." : "");
+    showPipetteCheck(r, V);
     $("#swap-csv").disabled = $("#swap-pts-csv").disabled = false;
   } catch (e) {
     lastSwap = null;
@@ -1395,6 +1428,22 @@ function updateSwap(animate) {
     showError("#swap-error", String(e));
   }
   if (typeof viz !== "undefined") viz.sync();
+}
+
+// Flags swap volumes that are hard to pipette accurately
+function showPipetteCheck(r, V) {
+  const box = $("#pipette-check");
+  const vols = r.VSW.slice(1);
+  if (!vols.length) { box.hidden = true; return; }
+  const small = vols.map((v, i) => ({ v, step: i + 1 })).filter((x) => x.v < 5);
+  const big = vols.map((v, i) => ({ v, step: i + 1 })).filter((x) => x.v > V * 0.5);
+  const msgs = [];
+  if (small.length) msgs.push(`<b>${small.length} swap${small.length > 1 ? "s are" : " is"} under 5 µL</b> (smallest ${fmtCell(Math.min(...small.map((x) => x.v)))} µL at step ${small[0].step}). Pipetting that little is unreliable — use fewer titration points in that region, or a larger sample volume.`);
+  if (big.length) msgs.push(`<b>Step ${big[0].step} swaps ${fmtCell(big[0].v)} µL</b>, more than half the sample. That is workable but leaves little margin for error.`);
+  box.className = msgs.length ? "note warn" : "note";
+  box.innerHTML = msgs.length ? msgs.join("<br>")
+    : `All swaps are between ${fmtCell(Math.min(...vols))} and ${fmtCell(Math.max(...vols))} µL — comfortable to pipette.`;
+  box.hidden = false;
 }
 
 // While typing: changed numbers glow and count to their new value; new rows and chips slide in
@@ -1532,9 +1581,57 @@ const viz = (() => {
   };
 })();
 
+/* ================= Least-squares K_d fit ================= */
+
+/*
+ * Fits CSP_i = dmax * fractionBound(L_i, P, Kd) to the measured points.
+ * For any K_d the amplitude dmax is linear, so it is solved exactly and only K_d is searched.
+ * Returns the best K_d, its ~95% range, the amplitude and the RMS residual.
+ */
+function fitKd(conc, csp, P) {
+  const n = conc.length;
+  if (n < 3) return { ok: false, reason: "At least three points are needed to fit a K\u2090." };
+  const sse = (kd) => {
+    let num = 0, den = 0;
+    for (let i = 0; i < n; i++) { const fi = fractionBound(conc[i], P, kd); num += fi * csp[i]; den += fi * fi; }
+    const amp = den > 0 ? num / den : 0;
+    let s = 0;
+    for (let i = 0; i < n; i++) { const r = csp[i] - amp * fractionBound(conc[i], P, kd); s += r * r; }
+    return { s, amp };
+  };
+  let best = { s: Infinity };
+  for (let e = -3; e <= 6.0001; e += 0.02) {                 // coarse scan over 1 nM … 1 M
+    const kd = Math.pow(10, e), r = sse(kd);
+    if (r.s < best.s) best = { s: r.s, amp: r.amp, e };
+  }
+  let lo = best.e - 0.02, hi = best.e + 0.02;               // golden-section refinement
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let c = hi - gr * (hi - lo), d = lo + gr * (hi - lo);
+  for (let k = 0; k < 60; k++) {
+    if (sse(Math.pow(10, c)).s < sse(Math.pow(10, d)).s) hi = d; else lo = c;
+    c = hi - gr * (hi - lo); d = lo + gr * (hi - lo);
+  }
+  const e0 = (lo + hi) / 2, kd = Math.pow(10, e0), at = sse(kd);
+  if (!(at.amp > 0) || !isFinite(kd)) return { ok: false, reason: "These points cannot be fitted (check the CSP values)." };
+
+  // uncertainty from the curvature of the error surface in log space
+  const h = 0.03, sPlus = sse(Math.pow(10, e0 + h)).s, sMinus = sse(Math.pow(10, e0 - h)).s;
+  const curv = (sPlus - 2 * at.s + sMinus) / (h * h);
+  const dof = n - 2;
+  const sigma2 = dof > 0 ? at.s / dof : 0;
+  let factor = null;
+  // with only three points the fit has no spare information, so a range would be meaningless
+  if (dof >= 2 && curv > 0 && sigma2 > 0) {
+    const seLog = Math.sqrt((2 * sigma2) / curv);
+    if (isFinite(seLog)) factor = Math.pow(10, 1.96 * seLog);
+  }
+  return { ok: true, kd, amp: at.amp, rms: Math.sqrt(at.s / n), factor, n,
+           lo: factor ? kd / factor : null, hi: factor ? kd * factor : null };
+}
+
 /* ================= Tab 3: estimate Kd ================= */
 
-let lastEst = null;
+let lastEst = null, lastFit = null;
 function updateEst(animate) {
   const panel = $("#panel-est");
   clearBad(panel);
@@ -1563,7 +1660,15 @@ function updateEst(animate) {
       markers.push({ xs: conc, ys: ft.map((v) => v / ftEnd), shape: "tri", fill: "#ffffff", stroke: colors[j], series: j });
     });
     markers.push({ xs: conc, ys: csp.map((c) => c / lastCsp), shape: "circle", fill: "#ffffff", stroke: "#111111", dataLabel: "Your data" });
+    const fit = fitKd(conc, csp, P);
+    showFit(fit, P, conc, csp);
+
     const shown = lines.slice();
+    if (fit.ok) {
+      const fEnd = fractionBound(lastL, P, fit.kd);
+      shown.push({ xs, ys: xs.map((L) => fractionBound(L, P, fit.kd) / fEnd), color: "#111827", label: `best fit ${fmtVal(fit.kd)} µM`,
+        kd: fmtVal(fit.kd), dash: true, fit: true, fn: (L) => fractionBound(L, P, fit.kd) / fEnd });
+    }
     if (explore.est != null) {
       const kd = explore.est, fEnd = fractionBound(lastL, P, kd);
       shown.push({ xs, ys: xs.map((L) => fractionBound(L, P, kd) / fEnd), color: "#1f2a37", label: kdLabel(kd), kd, dash: true,
@@ -1579,8 +1684,37 @@ function updateEst(animate) {
     showError("#est-error", "");
   } catch (e) {
     lastEst = null;
+    showFit({ ok: false, reason: "" }, 0, [], []);
     showError("#est-error", String(e));
   }
+}
+
+function showFit(fit, P, conc, csp) {
+  const card = $("#fit-card");
+  if (!fit.ok) {
+    card.innerHTML = fit.reason ? `<div class="fit-note">${fit.reason}</div>` : "";
+    card.hidden = !fit.reason;
+    lastFit = null;
+    return;
+  }
+  lastFit = fit;
+  const range = fit.lo
+    ? `<span class="fit-range">95% range ${fmtVal(fit.lo)} – ${fmtVal(fit.hi)} µM</span>`
+    : `<span class="fit-range">add a fourth point to get an uncertainty range</span>`;
+  const notes = [];
+  if (fit.kd < P / 10) notes.push(`K<sub>d</sub> is far below the protein concentration (${fmtVal(P)} µM), so the titration is stoichiometric: treat this as an <b>upper limit</b> and repeat with less protein.`);
+  if (fit.kd > 3 * conc[conc.length - 1]) notes.push(`The highest ligand concentration (${fmtVal(conc[conc.length - 1])} µM) is well below K<sub>d</sub>, so the curve is far from saturation: treat this as a <b>lower limit</b>.`);
+  card.hidden = false;
+  card.innerHTML = `
+    <div class="fit-head">Best fit</div>
+    <div class="fit-kd"><i>K</i><sub>d</sub> = ${fmtVal(fit.kd)} µM</div>
+    ${range}
+    <div class="fit-rows">
+      <div><span>Δδ<sub>max</sub></span><b>${fmtVal(fit.amp)} ppm</b></div>
+      <div><span>RMS residual</span><b>${fit.rms < 1e-9 ? "0 (exact)" : fmtVal(fit.rms) + " ppm"}</b></div>
+      <div><span>Points fitted</span><b>${conc.length}</b></div>
+    </div>
+    ${notes.map((n) => `<div class="fit-note">${n}</div>`).join("")}`;
 }
 
 /* ================= Sliders ================= */
@@ -1700,6 +1834,18 @@ Object.entries(updaters).forEach(([panelId, fn]) => {
   panel.addEventListener("input", (e) => { if (e.target.matches('input[type="text"]')) clearPresetMark(); run(); });
   panel.addEventListener("change", (e) => { if (e.target.type !== "radio") fn(false); });
 });
+
+// Pasting a column from Excel (or any whitespace-separated list) turns into a comma list
+document.querySelectorAll('input[type="text"]').forEach((el) => el.addEventListener("paste", (e) => {
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  if (!text || !/[\s;\t]/.test(text.trim())) return;
+  const parts = text.trim().split(/[\s,;]+/).filter(Boolean);
+  if (parts.length < 2 || !parts.every((x) => isFinite(Number(x)))) return;
+  e.preventDefault();
+  el.value = parts.join(", ");
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  toast(`Pasted ${parts.length} values.`);
+}));
 
 document.querySelectorAll("input[data-default]").forEach((el) => (el.value = el.dataset.default));
 syncAllSliders();
@@ -1991,7 +2137,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.1";          // keep in step with website/version.json
+const APP_VERSION = "2.2";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
