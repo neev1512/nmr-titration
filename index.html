@@ -259,6 +259,13 @@
   :root[data-theme="dark"] .resbox { background: rgba(26,32,50,.5); border-color: rgba(255,255,255,.08); }
   :root[data-theme="dark"] .resbox textarea { background: rgba(12,16,28,.55); border-color: rgba(255,255,255,.09); }
   .restable td, .restable th { font-size: 13px; }
+  .peak-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; font-size: 13px; }
+  .peak-row input { width: 80px; padding: 7px 10px; font: inherit; border-radius: 12px; border: 1px solid rgba(255,255,255,.9);
+    background: rgba(255,255,255,.75); color: var(--text); }
+  :root[data-theme="dark"] .peak-row input { background: rgba(12,16,28,.55); border-color: rgba(255,255,255,.09); }
+  .chip.hot { background: linear-gradient(180deg, #7fa3ee, #6a78d8); color: #fff; border-color: rgba(255,255,255,.5); }
+  .chip.warm { background: rgba(147, 179, 246, .22); color: var(--accent); }
+  .resbox code { background: rgba(255,255,255,.8); border-radius: 5px; padding: 0 4px; }
   .restable tr.odd td { background: rgba(255, 214, 160, .35); }
   .restable .flag { color: #8a5a12; font-weight: 600; font-size: 12px; }
   :root[data-theme="dark"] .restable tr.odd td { background: rgba(140, 95, 20, .3); }
@@ -736,6 +743,18 @@
       </div>
       <div>
         <div class="note" id="design-check" role="status" hidden></div>
+        <details class="resbox" id="precision-box">
+          <summary>How precise will the K<sub>d</sub> be? (optional)</summary>
+          <p class="hint">Simulates this titration many times with your expected measurement noise and refits each one, so you can judge the design before using any protein.</p>
+          <div class="peak-row">
+            <label for="prec-noise">CSP noise (ppm)</label>
+            <input type="text" inputmode="decimal" id="prec-noise" value="0.005">
+            <label for="prec-dmax">Δδ<sub>max</sub> (ppm)</label>
+            <input type="text" inputmode="decimal" id="prec-dmax" value="1.0">
+            <button class="btn mini" id="prec-run" type="button">Estimate precision</button>
+          </div>
+          <div id="prec-result"></div>
+        </details>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="sim-plot" aria-label="Zoom out" title="Zoom out">−</button>
             <button class="zbtn" type="button" data-zoom="in" data-plot="sim-plot" aria-label="Zoom in" title="Zoom in">+</button>
@@ -869,11 +888,23 @@
       </div>
       <div>
         <div class="fitcard" id="fit-card" hidden></div>
+        <details class="resbox" id="peak-box">
+          <summary>Import peak lists → CSPs (optional)</summary>
+          <p class="hint">Paste your peak lists: one block per titration point, in the same order as the concentrations above, separated by a blank line. Each line is <code>residue  ¹H(ppm)  ¹⁵N(ppm)</code>. A single wide table (residue, then H and N for every point) works too.</p>
+          <textarea id="peak-data" rows="6" spellcheck="false" placeholder="L23  8.31  120.4&#10;K45  7.98  118.2&#10;&#10;L23  8.36  120.9&#10;K45  8.01  118.5"></textarea>
+          <div class="peak-row">
+            <label for="peak-alpha">¹⁵N scaling α</label>
+            <input type="text" inputmode="decimal" id="peak-alpha" value="0.14">
+            <button class="btn mini" id="peak-convert" type="button">Convert to CSPs</button>
+          </div>
+          <div id="peak-result"></div>
+        </details>
         <details class="resbox" id="res-box">
           <summary>Several residues at once (optional)</summary>
           <p class="hint">One residue per line: a label, then its CSP at each ligand concentration above. Paste straight from Excel.</p>
           <textarea id="res-data" rows="5" spellcheck="false" placeholder="L23   0   0.31   0.95&#10;K45   0   0.28   1.02&#10;G78   0   0.35   0.98"></textarea>
           <div id="res-result"></div>
+          <div id="interface-map"></div>
         </details>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="est-plot" aria-label="Zoom out" title="Zoom out">−</button>
@@ -921,6 +952,15 @@
       <ul>
         <li><b>Several residues:</b> open that box on tab 3 and paste one line per residue (label, then its CSP at each concentration). You get one <b>global K<sub>d</sub></b> fitted across all of them, each residue's own K<sub>d</sub>, and a flag on any residue that disagrees with the median by more than threefold.</li>
         <li><b>Export → Copy setup link</b> gives a link that reopens the app with all your values filled in — handy for sending a plan to your supervisor or picking up last week's work.</li>
+      </ul>
+
+      <ul>
+        <li><b>Import peak lists:</b> paste one block per titration point (<code>residue ¹H ¹⁵N</code>) and press <b>Convert to CSPs</b>. The app computes Δδ = √(Δδ<sub>H</sub>² + (α·Δδ<sub>N</sub>)²) with α = 0.14 by default, fills in the CSP box and the per-residue table.</li>
+        <li><b>Likely interface:</b> once several residues are loaded, the residues whose shifts exceed the mean + 1σ and mean + 2σ cut-offs are listed — the usual way to map a binding site.</li>
+      </ul>
+
+      <ul>
+        <li><b>Expected precision</b> (tab 1): enter the CSP noise you expect and the app simulates this titration 300 times, refitting each one, to tell you how well your planned points would pin K<sub>d</sub> down — before you use any protein.</li>
       </ul>
 
       <h3>At the bench</h3>
@@ -1490,6 +1530,54 @@ function showDesignCheck(P, kds, Ls) {
   box.hidden = false;
 }
 
+/* ================= How precise would this design be? ================= */
+
+// Simulates the planned titration with noise many times and refits, giving the spread of K_d
+function precisionTrial(P, Ls, kdTrue, dmax, noise, trials) {
+  let seed = 12345;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const gauss = () => { const u = Math.max(1e-12, rnd()), v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const fits = [];
+  for (let t = 0; t < trials; t++) {
+    const csp = Ls.map((L) => dmax * fractionBound(L, P, kdTrue) + noise * gauss());
+    const f = fitKd(Ls, csp, P);
+    if (f.ok && isFinite(f.kd)) fits.push(f.kd);
+  }
+  fits.sort((a, b) => a - b);
+  if (fits.length < trials / 2) return null;
+  const q = (p) => fits[Math.min(fits.length - 1, Math.max(0, Math.round(p * (fits.length - 1))))];
+  return { median: q(0.5), lo: q(0.16), hi: q(0.84), p05: q(0.05), p95: q(0.95), n: fits.length };
+}
+
+function runPrecision() {
+  const out = $("#prec-result");
+  if (!lastSim) { out.innerHTML = `<div class="fit-note">Fix the inputs on this tab first.</div>`; return; }
+  const noise = Number($("#prec-noise").value), dmax = Number($("#prec-dmax").value);
+  if (!isFinite(noise) || noise < 0 || !isFinite(dmax) || dmax <= 0) {
+    out.innerHTML = `<div class="fit-note">Noise must be zero or more, and Δδ<sub>max</sub> greater than zero.</div>`;
+    return;
+  }
+  const { P, Ls, kds } = lastSim;
+  const kdTrue = [...kds].sort((a, b) => a - b)[Math.floor(kds.length / 2)];
+  out.innerHTML = `<div class="fit-note">Simulating…</div>`;
+  setTimeout(() => {
+    const r = precisionTrial(P, Ls, kdTrue, dmax, noise, 300);
+    if (!r) { out.innerHTML = `<div class="fit-note">The simulated data could not be fitted — the design carries almost no information about K<sub>d</sub>.</div>`; return; }
+    const pct = ((r.hi - r.lo) / 2 / r.median) * 100;
+    const verdict = pct < 10 ? ["tight", "This design pins K<sub>d</sub> down well."]
+      : pct < 25 ? ["usable", "Good enough for a K<sub>d</sub> you can quote, though more points in the rising part would tighten it."]
+      : ["loose", "This design will only give the order of magnitude. Spread the points across the rising part of the curve, or reduce the noise."];
+    out.innerHTML = `
+      <div class="fit-head" style="margin-top:10px">Expected precision</div>
+      <div class="fit-kd">± ${pct.toFixed(0)}%</div>
+      <div class="fit-range">Assuming the true <i>K</i><sub>d</sub> is ${fmtVal(kdTrue)} µM with Δδ<sub>max</sub> ${fmtVal(dmax)} ppm and ${fmtVal(noise)} ppm noise,
+        300 simulated repeats of this titration give K<sub>d</sub> between <b>${fmtVal(r.lo)}</b> and <b>${fmtVal(r.hi)}</b> µM (central 68%),
+        and ${fmtVal(r.p05)} – ${fmtVal(r.p95)} µM at 90%.</div>
+      <div class="fit-note"><b>${verdict[0]}</b> — ${verdict[1]} Noise of ${fmtVal(noise)} ppm is about ${((noise / dmax) * 100).toFixed(1)}% of the full shift.</div>`;
+  }, 30);
+}
+$("#prec-run").addEventListener("click", runPrecision);
+
 /* ================= Tab 2: swapping ================= */
 
 let lastSwap = null;
@@ -1682,6 +1770,74 @@ const viz = (() => {
   };
 })();
 
+/* ================= Peak lists → CSPs ================= */
+
+/*
+ * Accepts either blocks separated by blank lines (one block per titration point,
+ * lines of "residue H N") or one wide row per residue (label, then H and N for every point).
+ * CSP is the usual combined shift: sqrt(dH² + (alpha·dN)²), relative to the first point.
+ */
+function peaksToCSP(text, nPoints, alpha) {
+  const blocks = text.trim().split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const shifts = new Map();                                  // residue -> [[H,N], …] per point
+  if (blocks.length > 1) {
+    if (blocks.length !== nPoints) return { error: `Found ${blocks.length} blocks but there are ${nPoints} ligand concentrations.` };
+    blocks.forEach((b, bi) => b.split(/\r?\n/).forEach((line) => {
+      const parts = line.trim().split(/[\s,;\t]+/).filter(Boolean);
+      if (parts.length < 3) return;
+      const label = parts[0], H = Number(parts[1]), N = Number(parts[2]);
+      if (!isFinite(H) || !isFinite(N)) return;
+      if (!shifts.has(label)) shifts.set(label, []);
+      shifts.get(label)[bi] = [H, N];
+    }));
+  } else {
+    text.trim().split(/\r?\n/).forEach((line) => {
+      const parts = line.trim().split(/[\s,;\t]+/).filter(Boolean);
+      if (parts.length < 3) return;
+      const label = parts.shift();
+      const nums = parts.map(Number);
+      if (nums.length !== nPoints * 2 || nums.some((v) => !isFinite(v))) return;
+      shifts.set(label, Array.from({ length: nPoints }, (_, i) => [nums[2 * i], nums[2 * i + 1]]));
+    });
+  }
+  const residues = [], skipped = [];
+  shifts.forEach((pts, label) => {
+    if (pts.length !== nPoints || pts.some((p) => !p)) { skipped.push(label); return; }
+    const [H0, N0] = pts[0];
+    residues.push({ label, csp: pts.map(([H, N]) => Math.sqrt((H - H0) ** 2 + (alpha * (N - N0)) ** 2)) });
+  });
+  if (!residues.length) return { error: "No residue appeared in every titration point." };
+  return { residues, skipped };
+}
+
+// Residues whose final CSP stands out: the usual mean + 1σ / mean + 2σ cut-offs
+function interfaceResidues(residues) {
+  const last = residues.map((r) => ({ label: r.label, csp: r.csp[r.csp.length - 1] }));
+  const vals = last.map((x) => x.csp);
+  const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const sd = Math.sqrt(vals.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, vals.length - 1));
+  return { mean, sd, t1: mean + sd, t2: mean + 2 * sd,
+           sorted: [...last].sort((a, b) => b.csp - a.csp) };
+}
+
+function showInterfaceMap(residues) {
+  const box = $("#interface-map");
+  if (!residues || residues.length < 4) { box.innerHTML = ""; lastInterface = null; return; }
+  const im = interfaceResidues(residues);
+  lastInterface = im;
+  const chip = (x) => `<span class="chip ${x.csp >= im.t2 ? "hot" : "warm"}">${x.label} <b>${fmtVal(x.csp)}</b></span>`;
+  const strong = im.sorted.filter((x) => x.csp >= im.t2);
+  const moderate = im.sorted.filter((x) => x.csp >= im.t1 && x.csp < im.t2);
+  box.innerHTML = `
+    <div class="fit-head" style="margin-top:14px">Likely interface</div>
+    <div class="fit-range">At the highest ligand concentration: mean CSP ${fmtVal(im.mean)} ppm, σ ${fmtVal(im.sd)} ppm
+      · cut-offs ${fmtVal(im.t1)} (1σ) and ${fmtVal(im.t2)} ppm (2σ)</div>
+    ${strong.length ? `<div class="chips">${strong.map(chip).join("")}</div><div class="fit-note">Above 2σ — the core of the binding site.</div>` : ""}
+    ${moderate.length ? `<div class="chips">${moderate.map(chip).join("")}</div><div class="fit-note">Between 1σ and 2σ — the periphery, or an indirect effect.</div>` : ""}
+    ${!strong.length && !moderate.length ? `<div class="fit-note">No residue stands out above the 1σ cut-off: the shifts are spread evenly, which usually means weak or non-specific binding.</div>` : ""}
+    ${residues.length < 15 ? `<div class="fit-note">Only ${residues.length} residues here — the mean and σ are rough. These cut-offs are meant for a full spectrum of peaks.</div>` : ""}`;
+}
+
 /* ================= Several residues: one shared K_d ================= */
 
 function parseResidues(text, nPoints) {
@@ -1734,7 +1890,7 @@ function fitGlobalKd(conc, residues, P) {
 function updateResidues() {
   const out = $("#res-result"), text = $("#res-data").value.trim();
   lastResidues = null;
-  if (!text || !lastEst) { out.innerHTML = ""; return; }
+  if (!text || !lastEst) { out.innerHTML = ""; showInterfaceMap(null); return; }
   const { P, conc } = lastEst;
   const { residues, bad } = parseResidues(text, conc.length);
   if (!residues.length) {
@@ -1746,6 +1902,7 @@ function updateResidues() {
   const kds = per.filter((x) => x.fit.ok).map((x) => x.fit.kd).sort((a, b) => a - b);
   const median = kds.length ? kds[Math.floor(kds.length / 2)] : null;
   lastResidues = { residues, global: g, per, median };
+  showInterfaceMap(residues);
   const rows = per.map((x) => {
     const kd = x.fit.ok ? x.fit.kd : null;
     const odd = kd && median && (kd > 3 * median || kd < median / 3);
@@ -1810,7 +1967,7 @@ function fitKd(conc, csp, P) {
 
 /* ================= Tab 3: estimate Kd ================= */
 
-let lastEst = null, lastFit = null, lastResidues = null;
+let lastEst = null, lastFit = null, lastResidues = null, lastInterface = null;
 function updateEst(animate) {
   const panel = $("#panel-est");
   clearBad(panel);
@@ -2127,6 +2284,24 @@ $("#copy-table").addEventListener("click", () => {
 });
 $("#bench-sheet").addEventListener("click", benchSheet);
 $("#res-data").addEventListener("input", debounce(updateResidues, 300));
+$("#peak-convert").addEventListener("click", () => {
+  if (!lastEst) return toast("Fix the inputs on this tab first.");
+  const alpha = Number($("#peak-alpha").value);
+  if (!isFinite(alpha) || alpha <= 0) return toast("α must be a positive number (0.14 is typical).");
+  const res = peaksToCSP($("#peak-data").value, lastEst.conc.length, alpha);
+  const out = $("#peak-result");
+  if (res.error) { out.innerHTML = `<div class="fit-note">${res.error}</div>`; return; }
+  const dp = (v) => Number(v.toFixed(4));
+  $("#res-data").value = res.residues.map((r) => [r.label, ...r.csp.map(dp)].join("  ")).join("\n");
+  const mean = lastEst.conc.map((_, i) => dp(res.residues.reduce((a, r) => a + r.csp[i], 0) / res.residues.length));
+  $("#est-csp").value = mean.join(", ");
+  $("#est-csp").dispatchEvent(new Event("input", { bubbles: true }));
+  $("#res-box").open = true;
+  out.innerHTML = `<div class="fit-note">Converted <b>${res.residues.length} residues</b> over ${lastEst.conc.length} points (α = ${alpha}).
+    The mean CSP per point went into the CSP box above, and every residue into the table below.
+    ${res.skipped.length ? `Skipped (missing from some points): ${res.skipped.join(", ")}.` : ""}</div>`;
+  toast(`Converted ${res.residues.length} residues to CSPs.`);
+});
 $("#sim-png").addEventListener("click", () => savePNG($("#sim-plot"), "Simulated_binding_curves.png"));
 $("#est-png").addEventListener("click", () => savePNG($("#est-plot"), "Plot_A1A2B1.png"));
 $("#swap-csv").addEventListener("click", () => {
@@ -2277,6 +2452,8 @@ async function exportZip() {
     add("3_Kd_estimation_points.csv", estPointsCSV());
     if (lastFit) add("3_Kd_fit.csv", csvText([["Kd (uM)", "95% low", "95% high", "dmax (ppm)", "RMS residual", "points"],
       [lastFit.kd, lastFit.lo ?? "", lastFit.hi ?? "", lastFit.amp, lastFit.rms, lastFit.n]]));
+    if (lastInterface) add("3_interface_residues.csv", csvText([["Residue", "CSP at highest ligand (ppm)", "above 1 sigma", "above 2 sigma"],
+      ...lastInterface.sorted.map((x) => [x.label, x.csp, x.csp >= lastInterface.t1 ? "yes" : "no", x.csp >= lastInterface.t2 ? "yes" : "no"])]));
     if (lastResidues) add("3_Kd_per_residue.csv", csvText([["Residue", "Kd alone (uM)", "dmax (ppm)"],
       ...lastResidues.per.map((x) => [x.label, x.fit.ok ? x.fit.kd : "", x.amp]),
       ["GLOBAL", lastResidues.global.kd, ""]]));
@@ -2409,7 +2586,7 @@ function applySetupFromHash() {
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.6";          // keep in step with website/version.json
+const APP_VERSION = "2.7";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
