@@ -829,7 +829,7 @@
       <ul>
         <li>Move the mouse over a plot to read exact values for every K<sub>d</sub> at <b>any</b> concentration. It only clicks onto a titration point when you are right on top of one, and holding <kbd>Alt</kbd> (or <kbd>Shift</kbd>) turns even that off.</li>
         <li><b>Zoom:</b> use the <b>+</b> and <b>−</b> buttons in the top-right corner of the plot. They zoom around wherever the crosshair last was, so point at the part you care about first, then press <b>+</b>. <b>Reset</b> (or a double-click) returns to the full view. Inside the plot the cursor only reads values. Zooming changes the view only, not your inputs or the exported data.</li>
-        <li><b>Moving around while zoomed:</b> click the plot once, then <kbd>←</kbd> <kbd>→</kbd> slide the view along the x-axis (<kbd>Shift</kbd> for bigger jumps, <kbd>Home</kbd>/<kbd>End</kbd> for the two ends).</li>
+        <li><b>Moving around while zoomed:</b> swipe sideways with two fingers on the trackpad (or shift-scroll with a mouse) to slide along the x-axis. You can also click the plot and use <kbd>←</kbd> <kbd>→</kbd> (<kbd>Shift</kbd> for bigger jumps, <kbd>Home</kbd>/<kbd>End</kbd> for the two ends). Scrolling up and down still scrolls the page, and nothing on the plot ever zooms by itself.</li>
         <li><b>Exact readings:</b> <kbd>Alt</kbd>+<kbd>←</kbd> <kbd>→</kbd> step the crosshair itself in small increments, which is handy near the origin. When the plot is not zoomed, the plain arrows do this too.</li>
         <li>Hover a K<sub>d</sub> in the legend to highlight that curve and fade the others (on a touch screen, tap it).</li>
       </ul>
@@ -1985,7 +1985,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.6";          // keep in step with website/version.json
+const APP_VERSION = "1.7";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2234,6 +2234,23 @@ function renderHover(svg, x, snapped) {
   });
   svg.addEventListener("pointerleave", (e) => { hideHover(svg); if (e.pointerType === "mouse") setFocus(svg, null); });
   svg.addEventListener("dblclick", () => resetZoom(svg));
+
+  // two-finger sideways swipe slides the zoomed view along the x-axis (it never zooms, and vertical scrolling still scrolls the page)
+  svg.addEventListener("wheel", (e) => {
+    const g = svg._geo, view = svg._view, f = svg._full;
+    if (!g || !view || !f) return;
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;          // vertical: let the page scroll
+    const r = svg.getBoundingClientRect(), k = r.width / g.W;
+    const vx = (e.clientX - r.left) / k, vy = (e.clientY - r.top) / k;
+    if (vx < g.m.l || vx > g.m.l + g.pw || vy < g.m.t || vy > g.m.t + g.ph) return;
+    e.preventDefault();
+    const span = view.xd[1] - view.xd[0];
+    const shift = (e.deltaX / (g.pw * k)) * span;
+    let lo = Math.max(f.xd[0], Math.min(view.xd[0] + shift, f.xd[1] - span));
+    svg._view = { xd: [lo, lo + span], yd: view.yd };
+    svg._shown = null;
+    scheduleZoom(svg);
+  }, { passive: false });
 
   // click the plot, then: arrows pan the zoomed view, Alt+arrows step the crosshair for an exact reading
   svg.setAttribute("tabindex", "0");
