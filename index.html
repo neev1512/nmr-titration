@@ -1985,7 +1985,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.7";          // keep in step with website/version.json
+const APP_VERSION = "1.8";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2095,7 +2095,18 @@ function repaintZoom(svg) {
     markers: spec.markers.map((mk) => ({ xs: mk.xs, ys: mk.ys })),
   });
   const tip = svg.parentElement.querySelector(".tip");
-  if (tip && tip.style.display === "block" && svg._hoverX != null) renderHover(svg, svg._hoverX, false);
+  if (tip && tip.style.display === "block") {
+    const g2 = svg._geo, c = svg._hoverClient;
+    if (c) {                                                       // the crosshair stays under the cursor while the axis moves
+      const r = svg.getBoundingClientRect(), k = r.width / g2.W;
+      const vx = (c.x - r.left) / k;
+      const xs = g2.spec.lines[0].xs;
+      let x = g2.xt.lo + ((vx - g2.m.l) / g2.pw) * (g2.xt.hi - g2.xt.lo);
+      renderHover(svg, Math.min(Math.max(x, xs[0]), xs[xs.length - 1]), false);
+    } else if (svg._hoverX != null) {
+      renderHover(svg, svg._hoverX, false);
+    }
+  }
 }
 
 // Zoom happens only through the buttons, centred on wherever the crosshair last was
@@ -2125,6 +2136,7 @@ function resetZoom(svg) {
 }
 
 function hideHover(svg) {
+  svg._tipSide = null;
   const box = svg.parentElement;
   box.querySelectorAll(".xhair, .tip, .hdot").forEach((e) => (e.style.display = "none"));
 }
@@ -2161,6 +2173,7 @@ function showHover(svg, e) {
     }));
   }
   svg._hoverY = e.clientY;
+  svg._hoverClient = { x: e.clientX, y: e.clientY };
   renderHover(svg, x, snapped);
 }
 
@@ -2216,6 +2229,8 @@ function renderHover(svg, x, snapped) {
   const tw = tip.offsetWidth, th = tip.offsetHeight;
   let left = px + 16;
   if (left + tw > box.clientWidth - 6) left = px - 16 - tw;
+  if (svg._tipSide != null && Math.abs(left - svg._tipSide) < 40) left = svg._tipSide;   // keep it steady
+  svg._tipSide = left;
   const anchorY = svg._hoverY != null ? svg._hoverY - br.top : oy + (g.m.t + g.ph / 2) * k;
   const top = Math.min(Math.max(anchorY - th / 2, 6), box.clientHeight - th - 6);
   Object.assign(tip.style, { left: Math.max(6, left) + "px", top: top + "px" });
@@ -2245,7 +2260,9 @@ function renderHover(svg, x, snapped) {
     if (vx < g.m.l || vx > g.m.l + g.pw || vy < g.m.t || vy > g.m.t + g.ph) return;
     e.preventDefault();
     const span = view.xd[1] - view.xd[0];
-    const shift = (e.deltaX / (g.pw * k)) * span;
+    const PAN_SPEED = 0.35;                                        // a swipe moves about a third of the raw distance
+    let shift = (e.deltaX / (g.pw * k)) * span * PAN_SPEED;
+    shift = Math.max(-span * 0.08, Math.min(span * 0.08, shift));  // never more than 8% of the view per event
     let lo = Math.max(f.xd[0], Math.min(view.xd[0] + shift, f.xd[1] - span));
     svg._view = { xd: [lo, lo + span], yd: view.yd };
     svg._shown = null;

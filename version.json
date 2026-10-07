@@ -1,1 +1,1 @@
-{ "version": "1.7", "date": "2026-10-06", "notes": "Two-finger sideways swipe pans the zoomed plot" }
+{ "version": "1.8", "date": "2026-10-06", "notes": "Slower, steadier panning; the readout now stays under the cursor" }
