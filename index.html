@@ -829,7 +829,8 @@
       <ul>
         <li>Move the mouse over a plot to read exact values for every K<sub>d</sub> at <b>any</b> concentration. It only clicks onto a titration point when you are right on top of one, and holding <kbd>Alt</kbd> (or <kbd>Shift</kbd>) turns even that off.</li>
         <li><b>Zoom:</b> use the <b>+</b> and <b>−</b> buttons in the top-right corner of the plot. They zoom around wherever the crosshair last was, so point at the part you care about first, then press <b>+</b>. <b>Reset</b> (or a double-click) returns to the full view. Inside the plot the cursor only reads values. Zooming changes the view only, not your inputs or the exported data.</li>
-        <li>For a precise reading near the origin, click the plot once and use <kbd>←</kbd> <kbd>→</kbd> to step the crosshair (<kbd>Shift</kbd> for 10× steps, <kbd>Alt</kbd> for fine ones, <kbd>Home</kbd>/<kbd>End</kbd> for the ends).</li>
+        <li><b>Moving around while zoomed:</b> click the plot once, then <kbd>←</kbd> <kbd>→</kbd> slide the view along the x-axis (<kbd>Shift</kbd> for bigger jumps, <kbd>Home</kbd>/<kbd>End</kbd> for the two ends).</li>
+        <li><b>Exact readings:</b> <kbd>Alt</kbd>+<kbd>←</kbd> <kbd>→</kbd> step the crosshair itself in small increments, which is handy near the origin. When the plot is not zoomed, the plain arrows do this too.</li>
         <li>Hover a K<sub>d</sub> in the legend to highlight that curve and fade the others (on a touch screen, tap it).</li>
       </ul>
 
@@ -1984,7 +1985,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.5";          // keep in step with website/version.json
+const APP_VERSION = "1.6";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2234,11 +2235,25 @@ function renderHover(svg, x, snapped) {
   svg.addEventListener("pointerleave", (e) => { hideHover(svg); if (e.pointerType === "mouse") setFocus(svg, null); });
   svg.addEventListener("dblclick", () => resetZoom(svg));
 
-  // click the plot, then use the arrow keys for an exact reading at any concentration
+  // click the plot, then: arrows pan the zoomed view, Alt+arrows step the crosshair for an exact reading
   svg.setAttribute("tabindex", "0");
   svg.addEventListener("keydown", (e) => {
     const g = svg._geo;
     if (!g) return;
+    const view = svg._view, f = svg._full;
+    const dir = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (view && f && !e.altKey && (dir || e.key === "Home" || e.key === "End")) {
+      e.preventDefault();                                  // pan the zoomed view
+      const span = view.xd[1] - view.xd[0];
+      let lo2 = e.key === "Home" ? f.xd[0]
+        : e.key === "End" ? f.xd[1] - span
+        : view.xd[0] + span * (e.shiftKey ? 0.4 : 0.1) * dir;
+      lo2 = Math.max(f.xd[0], Math.min(lo2, f.xd[1] - span));
+      svg._view = { xd: [lo2, lo2 + span], yd: view.yd };
+      svg._shown = null;
+      scheduleZoom(svg);
+      return;
+    }
     const xs = g.spec.lines[0].xs, lo = xs[0], hi = xs[xs.length - 1];
     const fine = (hi - lo) / 1000;   // Shift = 10x steps, Alt = fine tenths
     const keys = { ArrowLeft: -1, ArrowRight: 1, Home: 0, End: 0, PageUp: 10, PageDown: -10 };

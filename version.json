@@ -1,1 +1,1 @@
-{ "version": "1.5", "date": "2026-10-06", "notes": "Zoom in / zoom out buttons; the cursor now only reads values" }
+{ "version": "1.6", "date": "2026-10-06", "notes": "Arrow keys pan the plot while zoomed in" }
