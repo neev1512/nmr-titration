@@ -50,7 +50,7 @@
 <style>
   :root {
     --text: #1d2939;
-    --muted: #5b6b80;
+    --muted: #55637a;                      /* darkened for contrast on the glass panels */
     --accent: #3b6fc4;
     --accent-2: #6a8fe0;
     --accent-soft: rgba(90, 135, 220, 0.14);
@@ -117,6 +117,7 @@
   .tab:hover { color: var(--text); }
   .tab[aria-selected="true"] { color: var(--accent); }
   .tab:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+  :where(button, a, summary, [tabindex="0"]):focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; border-radius: 8px; }
   .tab .num {
     display: inline-block; width: 20px; height: 20px; line-height: 20px; border-radius: 50%;
     background: var(--accent-soft); color: var(--accent); font-size: 12px; text-align: center; margin-right: 6px;
@@ -360,6 +361,8 @@
 
   /* Export menu */
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: relative; z-index: 5; }
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .brand-icon { width: 46px; height: 46px; flex: none; border-radius: 13px; filter: drop-shadow(0 4px 12px rgba(80, 100, 190, .28)); }
   .header-actions { display: flex; gap: 8px; align-items: center; }
   .header-actions .btn { padding: 10px 18px; font-size: 14px; }
   .export { position: relative; }
@@ -485,6 +488,8 @@
     .wrap { padding: 16px 12px 32px; }
     header { padding: 16px 18px; }
     header h1 { font-size: 22px; }
+    .brand-icon { width: 36px; height: 36px; }
+    .brand { gap: 10px; }
     .tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; border-radius: 22px; margin: 12px 0 12px; }
     .tab { padding: 9px 6px; font-size: 13.5px; text-align: center; white-space: nowrap; }
     .tab .tl { display: none; }
@@ -515,7 +520,7 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
     --text: #e6ebf5;
-    --muted: #9eabc2;
+    --muted: #a7b4ca;                      /* lightened for contrast in dark mode */
     --accent: #93b3f6;
     --accent-2: #a9bdf8;
     --accent-soft: rgba(147, 179, 246, 0.16);
@@ -614,9 +619,26 @@
 <div class="bg" aria-hidden="true"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div></div>
 <div class="wrap">
   <header class="glass">
-    <h1>NMR Titration: Simulation-Guided “Swapping” Strategy</h1>
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 512 512" aria-hidden="true">
+        <defs>
+          <linearGradient id="bi-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8fb2f2"/><stop offset=".55" stop-color="#7d8fe6"/><stop offset="1" stop-color="#a48ae0"/></linearGradient>
+          <clipPath id="bi-clip"><rect width="512" height="512" rx="114"/></clipPath>
+        </defs>
+        <g clip-path="url(#bi-clip)">
+          <rect width="512" height="512" fill="url(#bi-bg)"/>
+          <circle cx="110" cy="90" r="150" fill="#c9f0e0" opacity=".35"/>
+          <circle cx="430" cy="440" r="170" fill="#e3d6fb" opacity=".35"/>
+          <path d="M136 372 L376 372 M136 372 L136 140" stroke="#fff" stroke-opacity=".7" stroke-width="14" stroke-linecap="round" fill="none"/>
+          <path d="M140 368 C170 250 205 205 250 186 C295 168 335 164 372 162" stroke="#fff" stroke-width="22" stroke-linecap="round" fill="none"/>
+          <g fill="#fff" stroke="#6a78d8" stroke-width="9"><circle cx="166" cy="290" r="17"/><circle cx="250" cy="196" r="17"/><circle cx="340" cy="166" r="17"/></g>
+        </g>
+      </svg>
+      <h1>NMR Titration: Simulation-Guided “Swapping” Strategy</h1>
+    </div>
     <div class="header-actions">
     <button class="btn plain" id="install-btn" hidden>Install app</button>
+    <button class="btn plain" id="install-help" hidden>How to install</button>
     <button class="btn plain theme-btn" id="theme-btn" aria-label="Switch to dark mode" title="Switch to dark mode">
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <g class="i-sun"><circle cx="12" cy="12" r="4.2" fill="currentColor"/>
@@ -635,7 +657,7 @@
     </div>
   </header>
 
-  <div class="tabs glass" role="tablist">
+  <div class="tabs glass" role="tablist" aria-label="Sections">
     <span class="tab-ind" aria-hidden="true"></span>
     <button class="tab" role="tab" aria-selected="true" data-tab="sim"><span class="num">1</span>Simulate<span class="tl"> binding curves</span></button>
     <button class="tab" role="tab" aria-selected="false" data-tab="swap"><span class="num">2</span>Swapping<span class="tl"> strategy</span></button>
@@ -644,7 +666,7 @@
   </div>
 
   <!-- ============ 1. Simulation ============ -->
-  <section class="panel glass active" id="panel-sim" role="tabpanel">
+  <section class="panel glass active" id="panel-sim" role="tabpanel" aria-label="Simulate binding curves">
     <h2>Simulate 1:1 binding curves (P + L ⇌ PL)</h2>
     <p class="howto">Enter your parameters. The plot updates as you type. Separate multiple values with commas, and press <kbd>Enter</kbd> to jump to the next box.</p>
     <div class="layout">
@@ -655,7 +677,7 @@
           <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
           <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
         </div>
-        <div class="error" id="sim-error"></div>
+        <div class="error" id="sim-error" role="alert"></div>
         <div class="field">
           <label for="sim-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
           <input type="text" inputmode="decimal" id="sim-p" data-default="50">
@@ -713,7 +735,7 @@
         </div>
       </div>
       <div>
-        <div class="note" id="design-check" hidden></div>
+        <div class="note" id="design-check" role="status" hidden></div>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="sim-plot" aria-label="Zoom out" title="Zoom out">−</button>
             <button class="zbtn" type="button" data-zoom="in" data-plot="sim-plot" aria-label="Zoom in" title="Zoom in">+</button>
@@ -725,7 +747,7 @@
   </section>
 
   <!-- ============ 2. Swapping ============ -->
-  <section class="panel glass" id="panel-swap" role="tabpanel">
+  <section class="panel glass" id="panel-swap" role="tabpanel" aria-label="Swapping strategy">
     <h2>Determine the “swapping” strategy</h2>
     <p class="howto">Enter your planned ligand concentrations (usually the ones from tab 1) and the total sample volume. The swap volumes update as you type.</p>
     <div class="layout">
@@ -736,7 +758,7 @@
           <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
           <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
         </div>
-        <div class="error" id="swap-error"></div>
+        <div class="error" id="swap-error" role="alert"></div>
         <div class="field">
           <label for="swap-l">Ligand (titrant) concentrations (µM)</label>
           <input type="text" id="swap-l" data-default="0, 30, 55, 90, 140, 210, 290, 420, 600, 890">
@@ -792,10 +814,11 @@
       <div>
         <h3 style="margin-top:0">Swapping scheme</h3>
         <div class="tablewrap"><table id="swap-table"></table></div>
-        <div class="note" id="pipette-check" hidden></div>
+        <div class="note" id="pipette-check" role="status" hidden></div>
         <h3>Titration points (in measurement order)</h3>
         <div class="chips" id="swap-points"></div>
         <div class="out-actions">
+          <button class="btn" id="copy-table">Copy table</button>
           <button class="btn" id="bench-sheet">Print bench sheet</button>
           <button class="btn" id="swap-csv">Download swapping scheme (CSV)</button>
           <button class="btn" id="swap-pts-csv">Download titration points (CSV)</button>
@@ -805,7 +828,7 @@
   </section>
 
   <!-- ============ 3. Estimate Kd ============ -->
-  <section class="panel glass" id="panel-est" role="tabpanel">
+  <section class="panel glass" id="panel-est" role="tabpanel" aria-label="Estimate Kd">
     <h2>Estimate K<sub>d</sub> from the A<sub>0</sub>, A<sub>1</sub>, and B<sub>0</sub> titration points</h2>
     <p class="howto">Enter your measured CSPs. Your data (black circles) are compared with the simulated curves. The curve they sit on gives an approximate K<sub>d</sub>.</p>
     <div class="layout">
@@ -816,7 +839,7 @@
           <button class="preset" data-preset="tight"><svg viewBox="0 0 20 20"><path d="M3 17c1.2-8 2.6-11 5-11.8S15 4.6 17 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Tight binder</button>
           <button class="preset" data-preset="weak"><svg viewBox="0 0 20 20"><path d="M3 17c4-3 7-5.5 9-7.2S15.5 7.4 17 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>Weak binder</button>
         </div>
-        <div class="error" id="est-error"></div>
+        <div class="error" id="est-error" role="alert"></div>
         <div class="field">
           <label for="est-p">Protein (titrate) concentration, P<sub>T</sub> (µM)</label>
           <input type="text" inputmode="decimal" id="est-p" data-default="50">
@@ -863,7 +886,7 @@
   </section>
 
   <!-- ============ 4. How to use ============ -->
-  <section class="panel glass" id="panel-help" role="tabpanel">
+  <section class="panel glass" id="panel-help" role="tabpanel" aria-label="How to use">
     <div class="help">
       <h2>How to use this tool</h2>
       <p class="howto">There's no code to run. Type your values and the results update right away.</p>
@@ -906,6 +929,13 @@
         <li>You can <b>paste a column straight from Excel</b> into any of the value boxes: it is converted to a comma list automatically.</li>
         <li><b>Print bench sheet</b> on tab 2 gives a one-page protocol with tick boxes and a column for spectrum names, to take to the spectrometer.</li>
         <li>Tab 1 tells you whether your planned points <b>cover the informative part of the curve</b>, and warns when points are wasted in the saturated region.</li>
+      </ul>
+
+      <h3>Shortcuts</h3>
+      <ul>
+        <li><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> switch tabs, <kbd>E</kbd> opens Export, <kbd>Esc</kbd> closes it.</li>
+        <li><kbd>Tab</kbd> moves through the controls, and the tab bar also responds to <kbd>←</kbd> <kbd>→</kbd>.</li>
+        <li><b>Copy table</b> on tab 2 puts the swapping scheme on the clipboard, ready to paste into Excel.</li>
       </ul>
 
       <h3>Reading the plots</h3>
@@ -1299,6 +1329,8 @@ function paintPlot(svg, geo, st) {
   svg.setAttribute("font-family", FONT);
   svg.innerHTML = o.join("");
   svg._shown = { xd: st.xd, yd: st.yd, lines: st.lines, markers: st.markers, H };
+  const srLabel = spec.lines.map((l) => `Kd ${l.kd} µM`).join(", ");
+  svg.setAttribute("aria-label", `${(spec.valueName || "Values").replace(/<[^>]+>/g, "")} against ligand concentration; curves for ${srLabel || "no curves"}.`);
 }
 
 // Highlight one curve (legend hover); null = show all
@@ -1967,6 +1999,24 @@ $("#sim-type").addEventListener("change", () => {
   updateSim(true);
 });
 window.addEventListener("resize", placeIndicators);
+
+// Keyboard shortcuts: 1-4 switch tabs, E opens Export
+document.addEventListener("keydown", (e) => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && ((t.matches && t.matches("input, textarea, select")) || t.isContentEditable)) return;
+  const tabs = [...document.querySelectorAll(".tab")];
+  if (/^[1-4]$/.test(e.key)) { const tab = tabs[+e.key - 1]; if (tab) { e.preventDefault(); tab.click(); tab.focus(); } return; }
+  if (e.key.toLowerCase() === "e") { e.preventDefault(); $("#export-btn").click(); }
+});
+// a tab bar should also respond to the arrow keys
+document.querySelectorAll(".tab").forEach((tab, i, all) => tab.addEventListener("keydown", (e) => {
+  const dir = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+  if (!dir) return;
+  e.preventDefault();
+  const next = all[(i + dir + all.length) % all.length];
+  next.click(); next.focus();
+}));
 let wasCompact = isCompact();
 window.addEventListener("resize", debounce(() => {
   if (isCompact() === wasCompact) return;
@@ -2067,6 +2117,14 @@ document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", 
 document.querySelectorAll(".zoom-reset").forEach((b) => b.addEventListener("click", () => resetZoom($("#" + b.dataset.plot))));
 document.querySelectorAll(".zbtn").forEach((b) => b.addEventListener("click", () => zoomBy($("#" + b.dataset.plot), b.dataset.zoom === "in" ? 1 / 1.6 : 1.6)));
 
+$("#copy-table").addEventListener("click", () => {
+  if (!lastSwap) return toast("Fix the inputs above first.");
+  const r = lastSwap;
+  const text = ["Step\tV_sw (uL)\tA (uM)\tB (uM)\tNew points",
+    ...r.VSW.map((v, i) => [i, fmtCell(v), fmtCell(r.A[i]), fmtCell(r.B[i]), r.rowPoints[i].join(" ")].join("\t"))].join("\n");
+  navigator.clipboard.writeText(text).then(() => toast("Table copied — paste straight into Excel."))
+    .catch(() => toast("Could not copy; use the CSV download instead."));
+});
 $("#bench-sheet").addEventListener("click", benchSheet);
 $("#res-data").addEventListener("input", debounce(updateResidues, 300));
 $("#sim-png").addEventListener("click", () => savePNG($("#sim-plot"), "Simulated_binding_curves.png"));
@@ -2351,7 +2409,7 @@ function applySetupFromHash() {
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.5";          // keep in step with website/version.json
+const APP_VERSION = "2.6";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2426,6 +2484,20 @@ if (isDark()) setTheme("dark", null, true);   // sync labels + colours for a rem
 let installPrompt = null;
 addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installPrompt = e; $("#install-btn").hidden = false; });
 addEventListener("appinstalled", () => { $("#install-btn").hidden = true; installPrompt = null; toast("Installed. Open “NMR Titration” from your apps."); });
+// Safari and Firefox never fire the install prompt, so offer instructions instead
+if (location.protocol.startsWith("http") && !matchMedia("(display-mode: standalone)").matches) {
+  setTimeout(() => {
+    if (installPrompt || !$("#install-btn").hidden) return;
+    const ua = navigator.userAgent;
+    const safari = /Safari/.test(ua) && !/Chrome|Chromium|Edg/.test(ua);
+    $("#install-help").hidden = false;
+    $("#install-help").addEventListener("click", () => {
+      toast(safari ? "In Safari: File → Add to Dock. It then runs as an app and works offline."
+        : "This browser cannot install web apps. Open the link in Chrome or Edge and press “Install app”, or simply keep using it in the browser.");
+    });
+  }, 2500);
+}
+
 $("#install-btn").addEventListener("click", async () => {
   if (!installPrompt) return;
   installPrompt.prompt();
