@@ -428,6 +428,8 @@
   .tip .row.dim { opacity: .35; }
   .tip .sw.dash { background: repeating-linear-gradient(90deg, #1f2a37 0 4px, transparent 4px 7px) !important; }
   .tip .row.data { margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+  .tip .row.data[hidden] { display: none; }
+  .tip .at { color: var(--muted); font-size: 11px; }
 
   /* Phones */
   @media (max-width: 640px) {
@@ -1989,7 +1991,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.0";          // keep in step with website/version.json
+const APP_VERSION = "2.1";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2243,16 +2245,17 @@ function renderHover(svg, x, snapped) {
     row.lastElementChild.textContent = fmtVal(vals[i]);
     row.classList.toggle("dim", svg._focus != null && svg._focus !== i);
   });
-  let measured = null;
-  if (snapped) {
-    g.spec.markers.filter((mk) => mk.dataLabel).forEach((mk) => {
-      const mi = mk.xs.indexOf(x);
-      if (mi >= 0) measured = { label: mk.dataLabel, value: mk.ys[mi] };
+  // your measured points: shown whenever the crosshair is near one, not only when exactly on it
+  let measured = null, best = 30;
+  g.spec.markers.filter((mk) => mk.dataLabel).forEach((mk) => {
+    mk.xs.forEach((mx, mi) => {
+      const d = Math.abs(g.X(mx) - g.X(x));
+      if (d < best) { best = d; measured = { label: mk.dataLabel, at: mx, value: mk.ys[mi] }; }
     });
-  }
+  });
   tip._dataRow.hidden = !measured;
   if (measured) {
-    tip._dataRow.querySelector(".dlbl").textContent = measured.label;
+    tip._dataRow.querySelector(".dlbl").innerHTML = `${measured.label} <span class="at">at ${fmtVal(measured.at)} µM</span>`;
     tip._dataRow.lastElementChild.textContent = fmtVal(measured.value);
   }
 

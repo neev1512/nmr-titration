@@ -1,1 +1,1 @@
-{ "version": "2.0", "date": "2026-10-07", "notes": "The value box is pinned to a plot corner, never covers the cursor, and updates without lag" }
+{ "version": "2.1", "date": "2026-10-07", "notes": "Your measured data is shown in the value box again, with the point it belongs to" }
