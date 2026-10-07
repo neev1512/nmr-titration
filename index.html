@@ -248,6 +248,21 @@
   .fit-rows { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 8px; font-size: 13px; }
   .fit-rows div { display: flex; gap: 8px; align-items: baseline; }
   .fit-rows span { color: var(--muted); }
+  .resbox { margin-bottom: 14px; padding: 10px 14px; border-radius: 16px; background: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.9); }
+  .resbox summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--accent); }
+  .resbox .hint { margin: 8px 0 6px; }
+  .resbox textarea { width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text);
+    padding: 9px 11px; border-radius: 12px; border: 1px solid rgba(255,255,255,.9); background: rgba(255,255,255,.75); resize: vertical; }
+  .resbox textarea:focus { outline: none; border-color: rgba(106,143,224,.7); box-shadow: 0 0 0 4px rgba(106,143,224,.16); }
+  :root[data-theme="dark"] .resbox { background: rgba(26,32,50,.5); border-color: rgba(255,255,255,.08); }
+  :root[data-theme="dark"] .resbox textarea { background: rgba(12,16,28,.55); border-color: rgba(255,255,255,.09); }
+  .restable td, .restable th { font-size: 13px; }
+  .restable tr.odd td { background: rgba(255, 214, 160, .35); }
+  .restable .flag { color: #8a5a12; font-weight: 600; font-size: 12px; }
+  :root[data-theme="dark"] .restable tr.odd td { background: rgba(140, 95, 20, .3); }
+  :root[data-theme="dark"] .restable .flag { color: #ffd79a; }
+
   .fit-note { margin-top: 8px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
   .note.warn { background: rgba(255, 238, 214, .85); color: #8a5a12; }
   :root[data-theme="dark"] .note { background: rgba(31, 107, 79, .25); color: #a8e6c9; }
@@ -381,6 +396,8 @@
     #report svg { display: block; width: 100%; max-height: 120mm; break-inside: avoid; }
     #report .skip { color: #9b2c2c; }
     #report .cite { margin-top: 16pt; font-size: 9pt; color: #555; }
+    #report td.tick { font-size: 15pt; width: 18pt; text-align: center; }
+    #report td.blank { min-width: 90pt; }
   }
 
   /* Startup splash */
@@ -596,6 +613,7 @@
       <button class="btn" id="export-btn" aria-haspopup="menu" aria-expanded="false">Export<span class="caret">▾</span></button>
       <div class="menu glass" id="export-menu" role="menu" hidden>
         <button role="menuitem" data-export="pdf"><b>PDF report</b><span>All inputs, plots and tables in one document. Choose “Save as PDF” in the print window.</span></button>
+        <button role="menuitem" data-export="link"><b>Copy setup link</b><span>A link that reopens the app with all of today's values filled in. Good for sending a plan to someone.</span></button>
         <button role="menuitem" data-export="zip"><b>All files (ZIP)</b><span>Plots as PNG, and all data as CSV files that open in Excel.</span></button>
       </div>
     </div>
@@ -680,6 +698,7 @@
         </div>
       </div>
       <div>
+        <div class="note" id="design-check" hidden></div>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="sim-plot" aria-label="Zoom out" title="Zoom out">−</button>
             <button class="zbtn" type="button" data-zoom="in" data-plot="sim-plot" aria-label="Zoom in" title="Zoom in">+</button>
@@ -762,6 +781,7 @@
         <h3>Titration points (in measurement order)</h3>
         <div class="chips" id="swap-points"></div>
         <div class="out-actions">
+          <button class="btn" id="bench-sheet">Print bench sheet</button>
           <button class="btn" id="swap-csv">Download swapping scheme (CSV)</button>
           <button class="btn" id="swap-pts-csv">Download titration points (CSV)</button>
         </div>
@@ -811,6 +831,12 @@
       </div>
       <div>
         <div class="fitcard" id="fit-card" hidden></div>
+        <details class="resbox" id="res-box">
+          <summary>Several residues at once (optional)</summary>
+          <p class="hint">One residue per line: a label, then its CSP at each ligand concentration above. Paste straight from Excel.</p>
+          <textarea id="res-data" rows="5" spellcheck="false" placeholder="L23   0   0.31   0.95&#10;K45   0   0.28   1.02&#10;G78   0   0.35   0.98"></textarea>
+          <div id="res-result"></div>
+        </details>
         <div class="plotbox"><div class="xhair"></div><div class="tip"></div><div class="zoom-tools">
             <button class="zbtn" type="button" data-zoom="out" data-plot="est-plot" aria-label="Zoom out" title="Zoom out">−</button>
             <button class="zbtn" type="button" data-zoom="in" data-plot="est-plot" aria-label="Zoom in" title="Zoom in">+</button>
@@ -854,10 +880,17 @@
         <li>Three points are enough for a fit, but more points give a tighter range.</li>
       </ul>
 
+      <ul>
+        <li><b>Several residues:</b> open that box on tab 3 and paste one line per residue (label, then its CSP at each concentration). You get one <b>global K<sub>d</sub></b> fitted across all of them, each residue's own K<sub>d</sub>, and a flag on any residue that disagrees with the median by more than threefold.</li>
+        <li><b>Export → Copy setup link</b> gives a link that reopens the app with all your values filled in — handy for sending a plan to your supervisor or picking up last week's work.</li>
+      </ul>
+
       <h3>At the bench</h3>
       <ul>
         <li>Tab 2 checks the swap volumes for you and warns when a swap is <b>under 5 µL</b> (hard to pipette accurately) or takes more than half the sample.</li>
         <li>You can <b>paste a column straight from Excel</b> into any of the value boxes: it is converted to a comma list automatically.</li>
+        <li><b>Print bench sheet</b> on tab 2 gives a one-page protocol with tick boxes and a column for spectrum names, to take to the spectrometer.</li>
+        <li>Tab 1 tells you whether your planned points <b>cover the informative part of the curve</b>, and warns when points are wasted in the saturated region.</li>
       </ul>
 
       <h3>Reading the plots</h3>
@@ -1382,11 +1415,32 @@ function updateSim(animate) {
     }
     drawPlot($("#sim-plot"), { lines: shown, markers, xLabel: X_LABEL, yLabel: Y_LABELS[type], valueName: TIP_NAMES[type] }, animate);
     lastSim = { P, Lmax, kds, Ls, type, factor, xs, curves: lines.map((l) => l.ys), points: markers.map((m) => m.ys) };
+    showDesignCheck(P, kds, Ls);
     showError("#sim-error", "");
   } catch (e) {
     lastSim = null;
+    $("#design-check").hidden = true;
     showError("#sim-error", String(e));
   }
+}
+
+// How well the planned points sample the binding curve, judged at the middle K_d
+function showDesignCheck(P, kds, Ls) {
+  const box = $("#design-check");
+  const kd = [...kds].sort((a, b) => a - b)[Math.floor(kds.length / 2)];
+  const pts = Ls.filter((L) => L > 0).map((L) => fractionBound(L, P, kd));
+  if (pts.length < 2) { box.hidden = true; return; }
+  const lo = Math.min(...pts), hi = Math.max(...pts);
+  const wasted = pts.filter((v) => v > 0.9).length;
+  const kdTxt = `K<sub>d</sub> = ${fmtVal(kd)} µM`;
+  const msgs = [];
+  if (hi < 0.5) msgs.push(`At ${kdTxt} your points only reach <b>${(hi * 100).toFixed(0)}% bound</b>. Without approaching saturation, K<sub>d</sub> and Δδ<sub>max</sub> trade off against each other — push the top concentration higher.`);
+  if (lo > 0.5) msgs.push(`At ${kdTxt} even your lowest point is already <b>${(lo * 100).toFixed(0)}% bound</b>, so the steep part of the curve is unsampled. Add points at lower ligand concentrations.`);
+  if (wasted > pts.length / 2) msgs.push(`<b>${wasted} of ${pts.length} points sit above 90% bound</b> at ${kdTxt} and add little information. Move some into the rising part of the curve.`);
+  box.className = msgs.length ? "note warn" : "note";
+  box.innerHTML = msgs.length ? msgs.join("<br>")
+    : `Good spread: at ${kdTxt} your points sample <b>${(lo * 100).toFixed(0)}% to ${(hi * 100).toFixed(0)}% bound</b>, covering the informative part of the curve.`;
+  box.hidden = false;
 }
 
 /* ================= Tab 2: swapping ================= */
@@ -1581,6 +1635,84 @@ const viz = (() => {
   };
 })();
 
+/* ================= Several residues: one shared K_d ================= */
+
+function parseResidues(text, nPoints) {
+  const rows = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const residues = [], bad = [];
+  rows.forEach((line, i) => {
+    const parts = line.split(/[\s,;\t]+/).filter(Boolean);
+    let label = null;
+    if (!isFinite(Number(parts[0]))) label = parts.shift();
+    const csp = parts.map(Number);
+    if (csp.length !== nPoints || csp.some((v) => !isFinite(v))) { bad.push(label || `line ${i + 1}`); return; }
+    residues.push({ label: label || `R${residues.length + 1}`, csp });
+  });
+  return { residues, bad };
+}
+
+// One K_d shared by every residue, each with its own Δδmax
+function fitGlobalKd(conc, residues, P) {
+  const nPts = conc.length * residues.length;
+  if (residues.length < 1 || nPts < residues.length + 2) return { ok: false };
+  const sse = (kd) => {
+    let total = 0;
+    const amps = residues.map((r) => {
+      let num = 0, den = 0;
+      conc.forEach((L, i) => { const f = fractionBound(L, P, kd); num += f * r.csp[i]; den += f * f; });
+      const amp = den > 0 ? num / den : 0;
+      conc.forEach((L, i) => { const res = r.csp[i] - amp * fractionBound(L, P, kd); total += res * res; });
+      return amp;
+    });
+    return { s: total, amps };
+  };
+  let best = { s: Infinity };
+  for (let e = -3; e <= 6.0001; e += 0.02) { const r = sse(Math.pow(10, e)); if (r.s < best.s) best = { s: r.s, e }; }
+  let lo = best.e - 0.02, hi = best.e + 0.02;
+  const gr = (Math.sqrt(5) - 1) / 2;
+  let c = hi - gr * (hi - lo), d = lo + gr * (hi - lo);
+  for (let k = 0; k < 60; k++) { if (sse(Math.pow(10, c)).s < sse(Math.pow(10, d)).s) hi = d; else lo = c; c = hi - gr * (hi - lo); d = lo + gr * (hi - lo); }
+  const e0 = (lo + hi) / 2, kd = Math.pow(10, e0), at = sse(kd);
+  const dof = nPts - (residues.length + 1);
+  const h = 0.03, curv = (sse(Math.pow(10, e0 + h)).s - 2 * at.s + sse(Math.pow(10, e0 - h)).s) / (h * h);
+  let factor = null;
+  if (dof >= 2 && curv > 0 && at.s > 0) {
+    const seLog = Math.sqrt((2 * (at.s / dof)) / curv);
+    if (isFinite(seLog)) factor = Math.pow(10, 1.96 * seLog);
+  }
+  return { ok: true, kd, amps: at.amps, rms: Math.sqrt(at.s / nPts), factor,
+           lo: factor ? kd / factor : null, hi: factor ? kd * factor : null };
+}
+
+function updateResidues() {
+  const out = $("#res-result"), text = $("#res-data").value.trim();
+  lastResidues = null;
+  if (!text || !lastEst) { out.innerHTML = ""; return; }
+  const { P, conc } = lastEst;
+  const { residues, bad } = parseResidues(text, conc.length);
+  if (!residues.length) {
+    out.innerHTML = `<div class="fit-note">Each line needs ${conc.length} CSP values, to match the ${conc.length} ligand concentrations above.</div>`;
+    return;
+  }
+  const g = fitGlobalKd(conc, residues, P);
+  const per = residues.map((r, i) => ({ label: r.label, fit: fitKd(conc, r.csp, P), amp: g.amps[i] }));
+  const kds = per.filter((x) => x.fit.ok).map((x) => x.fit.kd).sort((a, b) => a - b);
+  const median = kds.length ? kds[Math.floor(kds.length / 2)] : null;
+  lastResidues = { residues, global: g, per, median };
+  const rows = per.map((x) => {
+    const kd = x.fit.ok ? x.fit.kd : null;
+    const odd = kd && median && (kd > 3 * median || kd < median / 3);
+    return `<tr class="${odd ? "odd" : ""}"><td>${x.label}</td><td>${kd ? fmtVal(kd) : "—"}</td><td>${fmtVal(x.amp)}</td>${odd ? '<td class="flag">outlier</td>' : "<td></td>"}</tr>`;
+  }).join("");
+  out.innerHTML = `
+    <div class="fit-head" style="margin-top:10px">Global fit · ${residues.length} residues</div>
+    <div class="fit-kd"><i>K</i><sub>d</sub> = ${fmtVal(g.kd)} µM</div>
+    <div class="fit-range">${g.lo ? `95% range ${fmtVal(g.lo)} – ${fmtVal(g.hi)} µM · ` : ""}RMS residual ${fmtVal(g.rms)} ppm${median ? ` · median single-residue K<sub>d</sub> ${fmtVal(median)} µM` : ""}</div>
+    <div class="tablewrap" style="margin-top:10px"><table class="restable"><thead><tr><th>Residue</th><th>K<sub>d</sub> alone (µM)</th><th>Δδ<sub>max</sub> (ppm)</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${bad.length ? `<div class="fit-note">Ignored: ${bad.join(", ")} (wrong number of values).</div>` : ""}
+    <div class="fit-note">A residue whose own K<sub>d</sub> differs more than threefold from the median is flagged — often a second binding site, exchange broadening, or a mis-picked peak.</div>`;
+}
+
 /* ================= Least-squares K_d fit ================= */
 
 /*
@@ -1631,7 +1763,7 @@ function fitKd(conc, csp, P) {
 
 /* ================= Tab 3: estimate Kd ================= */
 
-let lastEst = null, lastFit = null;
+let lastEst = null, lastFit = null, lastResidues = null;
 function updateEst(animate) {
   const panel = $("#panel-est");
   clearBad(panel);
@@ -1682,6 +1814,7 @@ function updateEst(animate) {
     lastEst = { P, kds, conc, csp, xs, curves: lines.map((l) => l.ys),
       simPts: markers.slice(0, -1).map((m) => m.ys), measured: markers[markers.length - 1].ys };
     showError("#est-error", "");
+    updateResidues();
   } catch (e) {
     lastEst = null;
     showFit({ ok: false, reason: "" }, 0, [], []);
@@ -1919,6 +2052,8 @@ document.querySelectorAll(".preset").forEach((b) => b.addEventListener("click", 
 document.querySelectorAll(".zoom-reset").forEach((b) => b.addEventListener("click", () => resetZoom($("#" + b.dataset.plot))));
 document.querySelectorAll(".zbtn").forEach((b) => b.addEventListener("click", () => zoomBy($("#" + b.dataset.plot), b.dataset.zoom === "in" ? 1 / 1.6 : 1.6)));
 
+$("#bench-sheet").addEventListener("click", benchSheet);
+$("#res-data").addEventListener("input", debounce(updateResidues, 300));
 $("#sim-png").addEventListener("click", () => savePNG($("#sim-plot"), "Simulated_binding_curves.png"));
 $("#est-png").addEventListener("click", () => savePNG($("#est-plot"), "Plot_A1A2B1.png"));
 $("#swap-csv").addEventListener("click", () => {
@@ -2067,6 +2202,11 @@ async function exportZip() {
     await addPng("3_Kd_estimation_plot.png", $("#est-plot"));
     add("3_Kd_estimation_curves.csv", estCurvesCSV());
     add("3_Kd_estimation_points.csv", estPointsCSV());
+    if (lastFit) add("3_Kd_fit.csv", csvText([["Kd (uM)", "95% low", "95% high", "dmax (ppm)", "RMS residual", "points"],
+      [lastFit.kd, lastFit.lo ?? "", lastFit.hi ?? "", lastFit.amp, lastFit.rms, lastFit.n]]));
+    if (lastResidues) add("3_Kd_per_residue.csv", csvText([["Residue", "Kd alone (uM)", "dmax (ppm)"],
+      ...lastResidues.per.map((x) => [x.label, x.fit.ok ? x.fit.kd : "", x.amp]),
+      ["GLOBAL", lastResidues.global.kd, ""]]));
   }
   downloadBlob(makeZip(files), `NMR_titration_export_${st.file}.zip`);
   const skipped = tabErrors().length;
@@ -2076,6 +2216,28 @@ async function exportZip() {
 function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
 function kv(rows) { return `<table>${rows.map(([k, v]) => `<tr><th style="width:42%">${k}</th><td>${esc(v)}</td></tr>`).join("")}</table>`; }
 function plotClone(svg) { const c = svg.cloneNode(true); c.removeAttribute("class"); c.removeAttribute("id"); return c.outerHTML; }
+
+// A one-page protocol to take to the spectrometer, with tick boxes
+function benchSheet() {
+  if (!lastSwap) return toast("Fix the inputs above first.");
+  const r = lastSwap, st = nowStamp();
+  const rows = r.VSW.map((v, i) => `<tr><td class="tick">☐</td><td>${i}</td><td>${i === 0 ? "prepare A₀ and B₀" : fmtCell(v) + " µL"}</td>
+      <td>${fmtCell(r.A[i])}</td><td>${fmtCell(r.B[i])}</td><td>${r.rowPoints[i].join(", ")}</td><td class="blank"></td></tr>`).join("");
+  $("#report").innerHTML = `
+    <h1>Swapping protocol — bench sheet</h1>
+    <p class="meta">Prepared ${esc(st.text)} · total sample volume ${fmtCell(r.V)} µL each tube · ligand ${fmtCell(r.conc[0])} → ${fmtCell(r.conc[r.conc.length - 1])} µM</p>
+    <section>
+      <h2>Steps</h2>
+      <table><tr><th></th><th>Step</th><th>Swap</th><th>A (µM)</th><th>B (µM)</th><th>Measure</th><th>Spectrum / notes</th></tr>${rows}</table>
+      <h4>Measurement order</h4><p>${r.points.join(" → ")}</p>
+      <p class="cite">Swap equal volumes between tubes A and B, mix gently, let the sample equilibrate, then record both tubes.
+      Based on: Dcosta N, Black M, Huang R. A simulation-guided “swapping” protocol for NMR titrations (2024).</p>
+    </section>`;
+  const oldTitle = document.title;
+  document.title = `Bench sheet ${st.file}`;
+  window.addEventListener("afterprint", () => { document.title = oldTitle; $("#report").innerHTML = ""; }, { once: true });
+  window.print();
+}
 
 function exportPDF() {
   const st = nowStamp(), h = [];
@@ -2099,7 +2261,13 @@ function exportPDF() {
     h.push(`<section><h2>3. K<sub>d</sub> estimation</h2><h4>Inputs</h4>${kv([["Protein concentration, P<sub>T</sub> (µM)", d.P], ["K<sub>d</sub> values compared (µM)", d.kds.join(", ")]])}
       <h4>Measured points</h4><table><tr><th>Point</th><th>Ligand (µM)</th><th>CSP (ppm)</th><th>CSP<sub>i</sub>/CSP<sub>B0</sub></th></tr>
       ${d.conc.map((x, i) => `<tr><td>${pointName(i, n)}</td><td>${x}</td><td>${d.csp[i]}</td><td>${fmtCell(d.measured[i])}</td></tr>`).join("")}</table>
-      <h4>Plot</h4>${plotClone($("#est-plot"))}</section>`);
+      <h4>Plot</h4>${plotClone($("#est-plot"))}
+      ${lastFit ? `<h4>Least-squares fit</h4>${kv([["K<sub>d</sub> (µM)", fmtVal(lastFit.kd)],
+        ["95% range (µM)", lastFit.lo ? `${fmtVal(lastFit.lo)} – ${fmtVal(lastFit.hi)}` : "needs 4+ points"],
+        ["Δδ<sub>max</sub> (ppm)", fmtVal(lastFit.amp)], ["RMS residual (ppm)", fmtVal(lastFit.rms)]])}` : ""}
+      ${lastResidues ? `<h4>Global fit over ${lastResidues.residues.length} residues</h4>${kv([["K<sub>d</sub> (µM)", fmtVal(lastResidues.global.kd)],
+        ["95% range (µM)", lastResidues.global.lo ? `${fmtVal(lastResidues.global.lo)} – ${fmtVal(lastResidues.global.hi)}` : "—"],
+        ["Median single-residue K<sub>d</sub> (µM)", lastResidues.median ? fmtVal(lastResidues.median) : "—"]])}` : ""}</section>`);
   }
   if (skipped.length) h.push(`<p class="skip">Not included because of input errors: ${skipped.map(([t, e]) => `${esc(t)} (${esc(e)})`).join("; ")}</p>`);
   h.push(`<p class="cite">Based on: Dcosta N, Black M, Huang R. A simulation-guided “swapping” protocol for NMR titrations to study protein–protein interactions (2024).</p>`);
@@ -2132,12 +2300,43 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
   setMenu(false);
   if (tabErrors().length === 3) return toast("Nothing to export yet. Fix the input errors first.");
   if (b.dataset.export === "zip") exportZip().catch((e) => toast("Export failed: " + e));
-  else exportPDF();
+  else if (b.dataset.export === "link") {
+    const url = setupLink();
+    navigator.clipboard.writeText(url).then(() => toast("Setup link copied to the clipboard."))
+      .catch(() => { history.replaceState(null, "", url); toast("Setup link is now in the address bar — copy it from there."); });
+  } else exportPDF();
 }));
+
+/* ================= Share the current setup as a link ================= */
+
+const SETUP_FIELDS = ["sim-p", "sim-lmax", "sim-kd", "sim-l", "sim-csp", "sim-ifree", "sim-ibound",
+  "swap-l", "swap-v", "est-p", "est-kd", "est-l", "est-csp"];
+
+function setupLink() {
+  const data = { v: 1, t: plotType(), f: {} };
+  SETUP_FIELDS.forEach((id) => (data.f[id] = $("#" + id).value));
+  const res = $("#res-data").value.trim();
+  if (res && res.length < 2000) data.r = res;
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return location.origin + location.pathname + "#s=" + encoded;
+}
+function applySetupFromHash() {
+  const m = /[#&]s=([A-Za-z0-9\-_]+)/.exec(location.hash);
+  if (!m) return false;
+  try {
+    const json = decodeURIComponent(escape(atob(m[1].replace(/-/g, "+").replace(/_/g, "/"))));
+    const data = JSON.parse(json);
+    SETUP_FIELDS.forEach((id) => { if (data.f && data.f[id] != null) $("#" + id).value = data.f[id]; });
+    if (data.t) { const radio = document.querySelector(`input[name="simtype"][value="${data.t}"]`); if (radio) radio.checked = true; }
+    if (data.r) $("#res-data").value = data.r;
+    syncAllSliders();
+    return true;
+  } catch (e) { return false; }
+}
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "2.2";          // keep in step with website/version.json
+const APP_VERSION = "2.4";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2504,7 +2703,9 @@ function renderHover(svg, x, snapped) {
 // exposed for testing
 window.NMR = { fractionBound, linspace, swappingVolumes, pyFloat, makeZip, crc32, inputsText };
 
+const fromLink = applySetupFromHash();
 updateSim(true); updateSwap(false); updateEst(false);
+if (fromLink) { updateResidues(); setTimeout(() => toast("Opened a shared setup."), 900); }
 viz.sync();
 placeIndicators();
 requestAnimationFrame(() => document.fonts && document.fonts.ready.then(placeIndicators));
