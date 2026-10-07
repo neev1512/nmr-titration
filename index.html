@@ -413,7 +413,8 @@
     pointer-events: none; display: none; will-change: transform; }
   .hdot { position: absolute; top: 0; left: 0; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; border-radius: 50%; border: 2px solid #fff;
     box-shadow: 0 1px 5px rgba(30, 40, 80, .3); pointer-events: none; display: none; will-change: transform; }
-  .tip { position: absolute; z-index: 3; pointer-events: none; display: none; min-width: 170px; padding: 9px 11px; border-radius: 12px;
+  .tip { position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; display: none; min-width: 170px; padding: 9px 11px; border-radius: 12px;
+    transition: transform .25s var(--ease); will-change: transform;
     font-size: 12.5px; line-height: 1.45; color: var(--text); font-variant-numeric: tabular-nums;
     background: rgba(255, 255, 255, .9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
     border: 1px solid #fff; box-shadow: 0 8px 26px rgba(40, 60, 110, .16); }
@@ -1988,7 +1989,7 @@ exportMenu.querySelectorAll("[data-export]").forEach((b) => b.addEventListener("
 
 /* ================= Version + automatic updates ================= */
 
-const APP_VERSION = "1.9";          // keep in step with website/version.json
+const APP_VERSION = "2.0";          // keep in step with website/version.json
 $("#app-version").textContent = APP_VERSION;
 // hovering the version shows what changed in it
 if (location.protocol.startsWith("http")) {
@@ -2141,7 +2142,7 @@ function resetZoom(svg) {
 }
 
 function hideHover(svg) {
-  svg._tipSide = null;
+  svg._tipRight = null;
   const box = svg.parentElement;
   box.querySelectorAll(".xhair, .tip, .hdot").forEach((e) => (e.style.display = "none"));
 }
@@ -2222,26 +2223,47 @@ function renderHover(svg, x, snapped) {
 
   const span = g.xt.hi - g.xt.lo;
   const xText = x === 0 ? "0" : Math.abs(x) < span / 100 ? x.toFixed(3) : Math.abs(x) < span / 10 ? x.toFixed(2) : fmtVal(x);
-  let html = `<div class="th">[L] = ${xText} µM${snapped ? '<span class="tag">titration point</span>' : ""}</div>`;
-  html += `<div class="ts">${g.spec.valueName}</div>`;
-  html += lines.map((l, i) => `<div class="row${svg._focus != null && svg._focus !== i ? " dim" : ""}"><span class="sw${l.dash ? " dash" : ""}" style="background:${l.color}"></span><span><i>K</i><sub>d</sub> ${l.kd} µM${l.dash ? " (explore)" : ""}</span><span class="v">${fmtVal(vals[i])}</span></div>`).join("");
+  const tip = box.querySelector(".tip");
+
+  // Build the rows once per series set, then only rewrite the numbers: no layout work per frame
+  const sig = lines.map((l) => `${l.kd}${l.dash ? "d" : ""}${l.color}`).join("|") + "|" + g.spec.valueName;
+  if (tip._sig !== sig) {
+    tip.innerHTML = `<div class="th"></div><div class="ts">${g.spec.valueName}</div>` +
+      lines.map((l) => `<div class="row"><span class="sw${l.dash ? " dash" : ""}" style="background:${l.color}"></span>` +
+        `<span><i>K</i><sub>d</sub> ${l.kd} µM${l.dash ? " (explore)" : ""}</span><span class="v"></span></div>`).join("") +
+      `<div class="row data" hidden><span class="sw pt"></span><span class="dlbl"></span><span class="v"></span></div>`;
+    tip._sig = sig;
+    tip._head = tip.querySelector(".th");
+    tip._rows = [...tip.querySelectorAll(".row")];
+    tip._dataRow = tip.querySelector(".row.data");
+  }
+  tip._head.innerHTML = `[L] = ${xText} µM${snapped ? '<span class="tag">titration point</span>' : ""}`;
+  lines.forEach((l, i) => {
+    const row = tip._rows[i];
+    row.lastElementChild.textContent = fmtVal(vals[i]);
+    row.classList.toggle("dim", svg._focus != null && svg._focus !== i);
+  });
+  let measured = null;
   if (snapped) {
     g.spec.markers.filter((mk) => mk.dataLabel).forEach((mk) => {
-      const i = mk.xs.indexOf(x);
-      if (i >= 0) html += `<div class="row data"><span class="sw pt"></span><span>${mk.dataLabel}</span><span class="v">${fmtVal(mk.ys[i])}</span></div>`;
+      const mi = mk.xs.indexOf(x);
+      if (mi >= 0) measured = { label: mk.dataLabel, value: mk.ys[mi] };
     });
   }
-  const tip = box.querySelector(".tip");
-  tip.innerHTML = html;
+  tip._dataRow.hidden = !measured;
+  if (measured) {
+    tip._dataRow.querySelector(".dlbl").textContent = measured.label;
+    tip._dataRow.lastElementChild.textContent = fmtVal(measured.value);
+  }
+
+  // Pinned to a top corner of the plot, on the side away from the crosshair, so it never sits under the cursor
   tip.style.display = "block";
-  const tw = tip.offsetWidth, th = tip.offsetHeight;
-  let left = px + 16;
-  if (left + tw > box.clientWidth - 6) left = px - 16 - tw;
-  if (svg._tipSide != null && Math.abs(left - svg._tipSide) < 40) left = svg._tipSide;   // keep it steady
-  svg._tipSide = left;
-  const anchorY = svg._hoverY != null ? svg._hoverY - br.top : oy + (g.m.t + g.ph / 2) * k;
-  const top = Math.min(Math.max(anchorY - th / 2, 6), box.clientHeight - th - 6);
-  Object.assign(tip.style, { left: Math.max(6, left) + "px", top: top + "px" });
+  const tw = tip.offsetWidth;
+  const plotL = ox + g.m.l * k, plotR = ox + (g.m.l + g.pw) * k;
+  const wantRight = px < (plotL + plotR) / 2;
+  if (svg._tipRight == null || Math.abs(px - (plotL + plotR) / 2) > 24) svg._tipRight = wantRight;
+  const left = svg._tipRight ? Math.max(6, plotR - tw - 10) : plotL + 10;
+  tip.style.transform = `translate(${left.toFixed(1)}px, ${(oy + (g.m.t + 10) * k).toFixed(1)}px)`;
 }
 ["#sim-plot", "#est-plot"].forEach((id) => {
   const svg = $(id);

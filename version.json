@@ -1,1 +1,1 @@
-{ "version": "1.9", "date": "2026-10-07", "notes": "Panning stops at the end of the curves; no stray dots outside the plot" }
+{ "version": "2.0", "date": "2026-10-07", "notes": "The value box is pinned to a plot corner, never covers the cursor, and updates without lag" }
